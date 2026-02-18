@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import routes from "./routes";
 import { initDb } from "./database/schema";
+import "dotenv/config";
 
 const app = express(); // ✅ primeiro cria o app
 
