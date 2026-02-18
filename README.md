@@ -1,73 +1,239 @@
-# React + TypeScript + Vite
+# ❄️ FrioOS — Sistema de Ordens de Serviço para Técnicos de Refrigeração
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Sistema web full-stack desenvolvido para ajudar técnicos autônomos (MEI) a organizar clientes, ordens de serviço e histórico financeiro, substituindo anotações em papel por uma solução digital simples e profissional.
 
-Currently, two official plugins are available:
+Projeto criado como PEX (Projeto de Experiência) com foco em impacto real em pequenos negócios.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## 🚀 Problema
 
-## React Compiler
+Técnicos de refrigeração geralmente:
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+anotam serviços no papel/WhatsApp
 
-## Expanding the ESLint configuration
+perdem histórico de clientes
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+esquecem valores recebidos
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+não têm controle financeiro
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+não geram comprovantes
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+Isso gera:
+
+❌ desorganização
+
+❌ retrabalho
+
+❌ perda de dinheiro
+
+❌ pouca credibilidade
+
+## ✅ Solução
+
+O FrioOS centraliza tudo em um único sistema:
+
+`👤 cadastro de clientes`
+
+`📋 ordens de serviço digitais`
+
+`🔄 controle de status`
+
+`💰 registro de valores`
+
+`📄 geração de PDF`
+
+`📊 relatórios mensais`
+
+`🟣 persistência em banco de dados`
+
+# 🧠 Arquitetura do Projeto
+## 🟢 Frontend (React)
+
+Interface do usuário
+
+React + Vite + TypeScript
+
+
+Responsável por:
+
+telas
+
+formulários
+
+navegação
+
+consumo da API
+
+## 🔵 Backend (Node + Express)
+
+API REST
+
+Responsável por:
+
+regras de negócio
+
+validações
+
+endpoints HTTP
+
+comunicação com banco
+
+## 🟣 Banco de Dados (SQLite)
+
+Persistência local
+
+Responsável por:
+
+salvar clientes
+
+salvar ordens de serviço
+
+histórico permanente
+
+## 🔄 Fluxo da aplicação
+Frontend → API → Service → Database → Response → Frontend
+
+## 🛠️ Tecnologias
+Frontend
+
+React
+
+Vite
+
+TypeScript
+
+React Router
+
+Axios
+
+Backend
+
+Node.js
+
+Express
+
+TypeScript
+
+SQLite
+
+## 📂 Estrutura de Pastas
+🟢 Frontend
+src/
+ ├─ pages/
+ ├─ components/
+ ├─ routes/
+ ├─ services/
+ ├─ types/
+ └─ App.tsx
+
+🔵 Backend
+src/
+ ├─ server.ts
+ ├─ routes/
+ ├─ controllers/
+ ├─ services/
+ ├─ models/
+ └─ database/
+      ├─ connection.ts
+      ├─ schema.ts
+      └─ db.ts
+
+# ▶️ Como rodar o projeto
+## 🟢 Frontend
+npm install
+npm run dev
+
+
+Acesse:
+
+`http://localhost:5173`
+
+## 🔵 Backend
+cd frioos-backend
+npm install
+npm run dev
+
+
+Acesse:
+
+`http://localhost:3333`
+
+##📡 Endpoints da API
+Listar clientes
+GET /api/clients
+
+Criar cliente
+POST /api/clients
+
+
+Body:
+
+``` json
+{
+  "nome": "João",
+  "telefone": "99999-9999",
+  "endereco": "Rua A"
+}
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## 🧩 Conceitos aplicados (aprendizado)
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+Este projeto foi construído para praticar:
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+arquitetura MVC
+
+separação de responsabilidades
+
+CRUD completo
+
+REST API
+
+integração Front ⇄ Back
+
+SQLite
+
+TypeScript full-stack
+
+## 💡 Impacto real
+
+Benefícios para o técnico:
+
+organização profissional
+
+histórico de clientes
+
+controle financeiro
+
+menos erros
+
+mais credibilidade
+
+economia de tempo
+
+## 📌 Próximas melhorias
+
+autenticação/login
+
+geração de PDF
+
+dashboard com gráficos
+
+controle de estoque
+
+versão mobile
+
+deploy em nuvem
+
+## 🤝 Contribuição
+
+Sinta-se livre para abrir:
+
+issues
+
+sugestões
+
+melhorias
+
+## 📄 Licença
+
+`MIT`
