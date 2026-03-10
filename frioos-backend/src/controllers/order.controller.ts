@@ -45,6 +45,8 @@ export async function listOrders(req: Request, res: Response) {
       status,
     });
 
+    console.log("GET /orders ->", JSON.stringify(orders, null, 2)); // <= ADD
+
     return res.json(orders);
   } catch (err: any) {
     return res.status(401).json({

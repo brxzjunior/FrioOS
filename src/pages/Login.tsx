@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { login } from "../services/authServices";
+import { login } from "../services/authService";
 import { setToken } from "../auth/auth";
+import toast from "react-hot-toast";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -13,7 +14,7 @@ export default function Login() {
     e.preventDefault();
 
     if (!email || !password) {
-      alert("Preencha email e senha");
+      toast.error("Preencha email e senha.");
       return;
     }
 
@@ -28,10 +29,13 @@ export default function Login() {
 
       console.log("TOKEN SALVO:", localStorage.getItem("frioos_token"));
 
+      toast.success("Login realizado com sucesso.");
       navigate("/dashboard", { replace: true });
     } catch (err: any) {
       console.error("ERRO LOGIN:", err);
-      alert(err?.response?.data?.message ?? "Erro ao logar");
+      const msg =
+        err?.response?.data?.message ?? "Erro ao logar. Verifique os dados.";
+      toast.error(msg);
     } finally {
       setLoading(false);
     }

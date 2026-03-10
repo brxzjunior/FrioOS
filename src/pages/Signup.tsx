@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { signup } from "../services/authServices";
+import { signup } from "../services/authService";
 import { setToken } from "../auth/auth";
+import toast from "react-hot-toast";
 
 export default function Signup() {
   const navigate = useNavigate();
@@ -12,13 +13,28 @@ export default function Signup() {
 
   async function handleSignup(e: React.FormEvent) {
     e.preventDefault();
+
+    if (!name || !email || !password) {
+      toast.error("Preencha nome, email e senha.");
+      return;
+    }
+
+    if (password.length < 6) {
+      toast.error("Senha deve ter pelo menos 6 caracteres.");
+      return;
+    }
+
     setLoading(true);
     try {
       const data = await signup({ name, email, password });
       setToken(data.token);
+      toast.success("Conta criada com sucesso.");
       navigate("/dashboard", { replace: true });
     } catch (err: any) {
-      alert(err?.response?.data?.message ?? "Erro ao cadastrar");
+      console.error("ERRO SIGNUP:", err);
+      const msg =
+        err?.response?.data?.message ?? "Erro ao cadastrar. Tente novamente.";
+      toast.error(msg);
     } finally {
       setLoading(false);
     }

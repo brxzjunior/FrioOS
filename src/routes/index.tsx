@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import ProtectedRoute from "./ProtectedRoute";
+import AppLayout from "../layouts/AppLayout";
 
 import Login from "../pages/Login";
 import Signup from "../pages/Signup";
@@ -20,12 +21,14 @@ export default function AppRoutes() {
 
         {/* privadas */}
         <Route element={<ProtectedRoute />}>
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/clientes" element={<Clients />} />
-          <Route path="/ordens" element={<Orders />} />
-          <Route path="/ordens/nova" element={<NewOrder />} />
-          <Route path="/relatorios" element={<Reports />} />
+          <Route element={<AppLayout />}>
+            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/clients" element={<Clients />} />
+            <Route path="/orders" element={<Orders />} />
+            <Route path="/new-order" element={<NewOrder />} />
+            <Route path="/reports" element={<Reports />} />
+          </Route>
         </Route>
 
         <Route path="*" element={<Navigate to="/dashboard" replace />} />

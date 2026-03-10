@@ -11,11 +11,19 @@ export type Order = {
   valor: number;
   status: OrderStatus;
   createdAt: string;
+  scheduledFor?: string;
+  obs?: string | null;
 };
 
 export async function getOrders(): Promise<Order[]> {
-  const res = await api.get<Order[]>("/orders");
-  return res.data;
+  const res = await api.get("/orders");
+  const payload = res.data as Order[] | { data: Order[] };
+
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+
+  return payload.data ?? [];
 }
 
 export async function createOrder(data: {
@@ -23,6 +31,8 @@ export async function createOrder(data: {
   tipo: OrderTipo;
   descricao: string;
   valor: number;
+  obs?: string;
+  scheduledFor?: string;
 }): Promise<Order> {
   const res = await api.post<Order>("/orders", data);
   return res.data;
@@ -30,8 +40,26 @@ export async function createOrder(data: {
 
 export async function updateOrderStatus(
   id: string,
-  status: "ABERTA" | "ANDAMENTO" | "FINALIZADA",
-) {
-  const res = await api.patch(`/orders/${id}/status`, { status });
+  status: OrderStatus,
+): Promise<Order> {
+  const res = await api.patch<Order>(`/orders/${id}/status`, { status });
+  return res.data;
+}
+
+export async function deleteOrder(id: string): Promise<void> {
+  await api.delete(`/orders/${id}`);
+}
+
+export async function updateOrder(
+  id: string,
+  data: {
+    tipo?: OrderTipo;
+    descricao?: string;
+    valor?: number;
+    obs?: string | null;
+    scheduledFor?: string | null;
+  },
+): Promise<Order> {
+  const res = await api.put<Order>(`/orders/${id}`, data);
   return res.data;
 }

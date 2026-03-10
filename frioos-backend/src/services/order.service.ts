@@ -10,10 +10,11 @@ export type Order = {
   clientId: string;
   tipo: OrderTipo;
   descricao: string;
-  obs: string;
+  obs: string | null;
   valor: number;
   status: OrderStatus;
   createdAt: string;
+  scheduledFor?: string | null;
 
   clientNome?: string;
   clientTelefone?: string;
@@ -25,6 +26,7 @@ type CreateOrderInput = {
   descricao: string;
   obs?: string;
   valor: number;
+  scheduledFor?: string;
 };
 
 type ListParams = {
@@ -52,24 +54,24 @@ export async function list(userId: string, params?: ListParams) {
 
   const orders = await all<Order>(
     `
-    SELECT 
-      orders.id,
-      orders.userId,
-      orders.clientId,
-      orders.tipo,
-      orders.descricao,
-      orders.obs,
-      orders.valor,
-      orders.status,
-      orders.createdAt,
-      clients.nome as clientNome,
-      clients.telefone as clientTelefone
-    FROM orders
-    JOIN clients ON clients.id = orders.clientId
-    ${where}
-    ORDER BY datetime(orders.createdAt) DESC
-    LIMIT ? OFFSET ?
-    `,
+  SELECT 
+    orders.id,
+    orders.userId,
+    orders.clientId,
+    orders.tipo,
+    orders.descricao,
+    orders.obs,
+    orders.valor,
+    orders.status,
+    orders.createdAt,
+    clients.nome as clientNome,
+    clients.telefone as clientTelefone
+  FROM orders
+  JOIN clients ON clients.id = orders.clientId
+  ${where}
+  ORDER BY datetime(orders.createdAt) DESC
+  LIMIT ? OFFSET ?
+  `,
     [...values, limit, offset],
   );
 
@@ -102,22 +104,22 @@ export async function getById(
 
   const order = await get<Order>(
     `
-    SELECT 
-      orders.id,
-      orders.userId,
-      orders.clientId,
-      orders.tipo,
-      orders.descricao,
-      orders.obs,
-      orders.valor,
-      orders.status,
-      orders.createdAt,
-      clients.nome as clientNome,
-      clients.telefone as clientTelefone
-    FROM orders
-    JOIN clients ON clients.id = orders.clientId
-    WHERE orders.id = ? AND orders.userId = ?
-    `,
+  SELECT 
+    orders.id,
+    orders.userId,
+    orders.clientId,
+    orders.tipo,
+    orders.descricao,
+    orders.obs,
+    orders.valor,
+    orders.status,
+    orders.createdAt,
+    clients.nome as clientNome,
+    clients.telefone as clientTelefone
+  FROM orders
+  JOIN clients ON clients.id = orders.clientId
+  WHERE orders.id = ? AND orders.userId = ?
+  `,
     [id, userId],
   );
 
@@ -135,6 +137,7 @@ export async function create(
   const descricao = input?.descricao?.trim() ?? "";
   const obs = input?.obs?.trim() ?? "";
   const valorNumber = Number(input?.valor);
+  const scheduledFor = input?.scheduledFor ?? null;
 
   if (!clientId) throw new Error("clientId é obrigatório.");
   if (!tipo) throw new Error("tipo é obrigatório.");
@@ -152,36 +155,31 @@ export async function create(
     throw new Error("Cliente inválido ou não pertence a este usuário.");
   }
 
-  const order: Order = {
-    id: crypto.randomUUID(),
-    userId,
-    clientId,
-    tipo,
-    descricao,
-    obs,
-    valor: valorNumber,
-    status: "ABERTA",
-    createdAt: new Date().toISOString(),
-  };
+  const orderId = crypto.randomUUID();
+  const createdAt = new Date().toISOString();
 
   await run(
     `
-    INSERT INTO orders 
-    (id, userId, clientId, tipo, descricao, obs, valor, status, createdAt)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `,
+  INSERT INTO orders 
+  (id, userId, clientId, tipo, descricao, obs, valor, status, createdAt)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `,
     [
-      order.id,
-      order.userId,
-      order.clientId,
-      order.tipo,
-      order.descricao,
-      order.obs,
-      order.valor,
-      order.status,
-      order.createdAt,
+      orderId,
+      userId,
+      clientId,
+      tipo,
+      descricao,
+      obs,
+      valorNumber,
+      "ABERTA",
+      createdAt,
     ],
   );
+
+  // retorna com join, igual getById
+  const order = await getById(userId, orderId);
+  if (!order) throw new Error("Erro ao criar OS.");
 
   return order;
 }
@@ -238,7 +236,6 @@ export async function stats(userId: string) {
     if (row.status === "ABERTA") stats.abertas = row.total;
     if (row.status === "ANDAMENTO") stats.andamento = row.total;
     if (row.status === "FINALIZADA") stats.finalizadas = row.total;
-
     stats.total += row.total;
   }
 
@@ -250,20 +247,20 @@ export async function update(
   id: string,
   data: {
     descricao?: string;
-    obs?: string;
+    obs?: string | null;
     valor?: number;
     tipo?: OrderTipo;
   },
-) {
+): Promise<Order> {
   if (!userId) throw new Error("userId é obrigatório.");
   if (!id) throw new Error("id é obrigatório.");
 
-  const order = await get<{ id: string }>(
+  const exists = await get<{ id: string }>(
     `SELECT id FROM orders WHERE id = ? AND userId = ?`,
     [id, userId],
   );
 
-  if (!order) {
+  if (!exists) {
     throw new Error("Ordem não encontrada.");
   }
 
@@ -272,9 +269,9 @@ export async function update(
     UPDATE orders
     SET
       descricao = COALESCE(?, descricao),
-      obs = COALESCE(?, obs),
-      valor = COALESCE(?, valor),
-      tipo = COALESCE(?, tipo)
+      obs       = COALESCE(?, obs),
+      valor     = COALESCE(?, valor),
+      tipo      = COALESCE(?, tipo)
     WHERE id = ? AND userId = ?
     `,
     [
@@ -287,7 +284,10 @@ export async function update(
     ],
   );
 
-  return { id };
+  const updated = await getById(userId, id);
+  if (!updated) throw new Error("Erro ao atualizar ordem.");
+
+  return updated;
 }
 
 export async function remove(userId: string, id: string) {

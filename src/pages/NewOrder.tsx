@@ -1,64 +1,97 @@
 import { useEffect, useState } from "react";
 import { createOrder, type OrderTipo } from "../services/orderService";
-import {
-  getClients,
-  createClient,
-  type Client,
-} from "../services/clientService";
+import { getClients, createClient } from "../services/clientService";
+import toast from "react-hot-toast";
+
+type ClientLite = {
+  id: string;
+  nome: string;
+  telefone?: string;
+  endereco?: string;
+};
 
 export default function NewOrder() {
-  const [clients, setClients] = useState<Client[]>([]);
+  const [clients, setClients] = useState<ClientLite[]>([]);
   const [clientId, setClientId] = useState("");
 
   const [tipo, setTipo] = useState<OrderTipo>("MANUTENCAO");
   const [descricao, setDescricao] = useState("");
   const [valor, setValor] = useState("");
+  const [obs, setObs] = useState("");
+  const [scheduledFor, setScheduledFor] = useState(""); // yyyy-mm-dd
 
-  // 🟢 cadastro rápido
   const [showQuickClient, setShowQuickClient] = useState(false);
   const [qcNome, setQcNome] = useState("");
   const [qcTelefone, setQcTelefone] = useState("");
   const [qcEndereco, setQcEndereco] = useState("");
 
-  // carregar clientes
+  const [loadingClients, setLoadingClients] = useState(true);
+  const [creatingOrder, setCreatingOrder] = useState(false);
+  const [creatingClient, setCreatingClient] = useState(false);
+
   useEffect(() => {
     (async () => {
-      const data = await getClients();
-      setClients(data);
-      if (data.length > 0) {
-        setClientId(data[0].id);
+      try {
+        setLoadingClients(true);
+        const data = await getClients();
+        setClients(data as ClientLite[]);
+        if (data.length > 0) {
+          setClientId(data[0].id);
+        }
+      } catch (err) {
+        console.error("Erro ao carregar clientes:", err);
+        toast.error("Erro ao carregar clientes.");
+      } finally {
+        setLoadingClients(false);
       }
     })();
   }, []);
 
-  // criar OS
   async function handleCreate() {
     if (!clientId || !descricao.trim()) {
-      alert("Selecione um cliente e preencha a descrição.");
+      toast.error("Selecione um cliente e preencha a descrição.");
       return;
     }
 
-    await createOrder({
-      clientId,
-      tipo,
-      descricao: descricao.trim(),
-      valor: Number(valor.replace(",", ".")),
-    });
+    if (!valor.trim()) {
+      toast.error("Preencha o valor.");
+      return;
+    }
 
-    setDescricao("");
-    setValor("");
-    alert("OS criada ✅");
+    try {
+      setCreatingOrder(true);
+
+      await createOrder({
+        clientId,
+        tipo,
+        descricao: descricao.trim(),
+        valor: Number(valor.replace(",", ".")),
+        obs: obs.trim() || undefined,
+        scheduledFor: scheduledFor || undefined, // envia data se tiver
+      });
+
+      setDescricao("");
+      setValor("");
+      setObs("");
+      setScheduledFor("");
+
+      toast.success("OS criada com sucesso.");
+    } catch (err) {
+      console.error("Erro ao criar OS:", err);
+      toast.error("Erro ao criar OS. Tente novamente.");
+    } finally {
+      setCreatingOrder(false);
+    }
   }
 
-  // criar cliente rápido
   async function handleQuickCreateClient() {
     try {
       if (!qcNome.trim()) {
-        alert("Nome é obrigatório.");
+        toast.error("Nome é obrigatório.");
         return;
       }
 
-      console.log("Criando cliente...");
+      setCreatingClient(true);
 
       const created = await createClient({
         nome: qcNome.trim(),
@@ -66,26 +99,20 @@ export default function NewOrder() {
         endereco: qcEndereco.trim(),
       });
 
-      console.log("Cliente criado:", created);
-
-      // atualiza lista
-      setClients((prev) => [created, ...prev]);
-
-      // seleciona automaticamente
+      setClients((prev) => [created as ClientLite, ...prev]);
       setClientId(created.id);
 
-      // limpa form
       setQcNome("");
       setQcTelefone("");
       setQcEndereco("");
-
-      // fecha form
       setShowQuickClient(false);
 
-      alert("Cliente criado com sucesso ✅");
+      toast.success("Cliente criado e selecionado.");
     } catch (error) {
       console.error("Erro ao criar cliente:", error);
-      alert("Erro ao criar cliente. Veja o console.");
+      toast.error("Erro ao criar cliente. Tente novamente.");
+    } finally {
+      setCreatingClient(false);
     }
   }
 
@@ -93,94 +120,128 @@ export default function NewOrder() {
     <div style={{ padding: 20 }}>
       <h2>Nova Ordem de Serviço</h2>
 
-      <div style={{ display: "grid", gap: 8, maxWidth: 520 }}>
-        {/* CLIENTE */}
-        <label>
-          Cliente
-          <select
-            value={clientId}
-            onChange={(e) => setClientId(e.target.value)}
-          >
-            {clients.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.nome}
-              </option>
-            ))}
-          </select>
-        </label>
+      {loadingClients ? (
+        <p>Carregando clientes...</p>
+      ) : (
+        <div style={{ display: "grid", gap: 8, maxWidth: 520 }}>
+          {/* CLIENTE */}
+          <label>
+            Cliente
+            <select
+              value={clientId}
+              onChange={(e) => setClientId(e.target.value)}
+            >
+              {clients.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.nome}
+                </option>
+              ))}
+            </select>
+          </label>
 
-        <button type="button" onClick={() => setShowQuickClient((v) => !v)}>
-          {showQuickClient
-            ? "Cancelar cadastro rápido"
-            : "Cadastrar cliente rápido"}
-        </button>
+          <button type="button" onClick={() => setShowQuickClient((v) => !v)}>
+            {showQuickClient
+              ? "Cancelar cadastro rápido"
+              : "Cadastrar cliente rápido"}
+          </button>
 
-        {/* CADASTRO RÁPIDO */}
-        {showQuickClient && (
-          <div
-            style={{ border: "1px solid #ddd", padding: 12, borderRadius: 8 }}
-          >
-            <h4>Cadastrar cliente rápido</h4>
+          {/* CADASTRO RÁPIDO */}
+          {showQuickClient && (
+            <div
+              style={{ border: "1px solid #ddd", padding: 12, borderRadius: 8 }}
+            >
+              <h4>Cadastrar cliente rápido</h4>
 
-            <input
-              placeholder="Nome"
-              value={qcNome}
-              onChange={(e) => setQcNome(e.target.value)}
+              <input
+                placeholder="Nome"
+                value={qcNome}
+                onChange={(e) => setQcNome(e.target.value)}
+              />
+
+              <input
+                placeholder="Telefone"
+                value={qcTelefone}
+                onChange={(e) => setQcTelefone(e.target.value)}
+              />
+
+              <input
+                placeholder="Endereço"
+                value={qcEndereco}
+                onChange={(e) => setQcEndereco(e.target.value)}
+              />
+
+              <button
+                type="button"
+                onClick={handleQuickCreateClient}
+                disabled={creatingClient}
+              >
+                {creatingClient
+                  ? "Salvando cliente..."
+                  : "Salvar cliente e selecionar"}
+              </button>
+            </div>
+          )}
+
+          {/* TIPO */}
+          <label>
+            Tipo
+            <select
+              value={tipo}
+              onChange={(e) => setTipo(e.target.value as OrderTipo)}
+            >
+              <option value="INSTALACAO">Instalação</option>
+              <option value="MANUTENCAO">Manutenção / limpeza</option>
+              <option value="CONSERTO">Remoção</option>
+            </select>
+          </label>
+
+          {/* DESCRIÇÃO */}
+          <label>
+            Descrição
+            <textarea
+              value={descricao}
+              onChange={(e) => setDescricao(e.target.value)}
             />
+          </label>
 
+          {/* DATA DO SERVIÇO */}
+          <label>
+            Data do serviço
             <input
-              placeholder="Telefone"
-              value={qcTelefone}
-              onChange={(e) => setQcTelefone(e.target.value)}
+              type="date"
+              value={scheduledFor}
+              onChange={(e) => setScheduledFor(e.target.value)}
             />
+          </label>
 
+          {/* OBSERVAÇÕES */}
+          <label>
+            Observações
+            <textarea
+              value={obs}
+              onChange={(e) => setObs(e.target.value)}
+              placeholder="Ex: equipamento antigo, cliente pediu retorno em 30 dias..."
+            />
+          </label>
+
+          {/* VALOR */}
+          <label>
+            Valor (R$)
             <input
-              placeholder="Endereço"
-              value={qcEndereco}
-              onChange={(e) => setQcEndereco(e.target.value)}
+              type="text"
+              placeholder="Ex: 150 ou 150,50"
+              value={valor}
+              onChange={(e) =>
+                setValor(e.target.value.replace(/[^0-9.,]/g, ""))
+              }
             />
+          </label>
 
-            <button type="button" onClick={handleQuickCreateClient}>
-              Salvar cliente e selecionar
-            </button>
-          </div>
-        )}
-
-        {/* TIPO */}
-        <label>
-          Tipo
-          <select
-            value={tipo}
-            onChange={(e) => setTipo(e.target.value as OrderTipo)}
-          >
-            <option value="INSTALACAO">Instalação</option>
-            <option value="MANUTENCAO">Manutenção</option>
-            <option value="CONSERTO">Conserto</option>
-          </select>
-        </label>
-
-        {/* DESCRIÇÃO */}
-        <label>
-          Descrição
-          <textarea
-            value={descricao}
-            onChange={(e) => setDescricao(e.target.value)}
-          />
-        </label>
-
-        {/* VALOR */}
-        <label>
-          Valor (R$)
-          <input
-            type="text"
-            placeholder="Ex: 150 ou 150,50"
-            value={valor}
-            onChange={(e) => setValor(e.target.value.replace(/[^0-9.,]/g, ""))}
-          />
-        </label>
-
-        <button onClick={handleCreate}>Criar OS</button>
-      </div>
+          <button onClick={handleCreate} disabled={creatingOrder}>
+            {creatingOrder ? "Criando OS..." : "Criar OS"}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
