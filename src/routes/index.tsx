@@ -1,11 +1,9 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import ProtectedRoute from "./ProtectedRoute";
-import AppLayout from "../layouts/AppLayout";
 
 import Login from "../pages/Login";
 import Signup from "../pages/Signup";
-
 import Dashboard from "../pages/Dashboard";
 import Clients from "../pages/Clients";
 import Orders from "../pages/Orders";
@@ -22,17 +20,14 @@ export default function AppRoutes() {
 
         {/* privadas */}
         <Route element={<ProtectedRoute />}>
-          <Route element={<AppLayout />}>
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/clientes" element={<Clients />} />
-            <Route path="/ordens" element={<Orders />} />
-            <Route path="/ordens/nova" element={<NewOrder />} />
-            <Route path="/relatorios" element={<Reports />} />
-          </Route>
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/clientes" element={<Clients />} />
+          <Route path="/ordens" element={<Orders />} />
+          <Route path="/ordens/nova" element={<NewOrder />} />
+          <Route path="/relatorios" element={<Reports />} />
         </Route>
 
-        {/* qualquer outra rota */}
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </BrowserRouter>

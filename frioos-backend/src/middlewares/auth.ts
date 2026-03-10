@@ -1,8 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 
-type JwtPayload = { sub: string; email: string };
-
 export function auth(req: Request, res: Response, next: NextFunction) {
   const header = req.headers.authorization;
 
@@ -11,14 +9,14 @@ export function auth(req: Request, res: Response, next: NextFunction) {
   }
 
   const token = header.replace("Bearer ", "");
+
   try {
     const secret = process.env.JWT_SECRET;
     if (!secret) throw new Error("JWT_SECRET não definido");
 
-    const payload = jwt.verify(token, secret) as JwtPayload;
+    const payload = jwt.verify(token, secret);
 
-    // anexar userId na request
-    (req as any).userId = payload.sub;
+    (req as any).userId = (payload as any).sub;
 
     return next();
   } catch {

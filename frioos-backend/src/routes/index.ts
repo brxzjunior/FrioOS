@@ -8,35 +8,40 @@ import {
   listOrders,
   createOrder,
   updateOrderStatus,
+  getOrderById,
+  getOrderStats,
 } from "../controllers/order.controller";
 
 const router = Router();
 
-//
-// 🟣 CLIENTS
-//
-router.get("/clients", listClients);
-router.post("/clients", createClient);
-
-//
-// 🟣 ORDERS
-//
-router.get("/orders", listOrders);
-router.post("/orders", createOrder);
-
-// 🔵 ETAPA 3: atualizar status da OS
-router.patch("/orders/:id/status", updateOrderStatus);
-
-//ROTAS PUBLICAS
+// =============================
+// 🌐 ROTAS PÚBLICAS (SEM TOKEN)
+// =============================
 router.post("/auth/signup", signup);
 router.post("/auth/login", login);
 
-router.use(auth); // tudo abaixo precisa estar logado
+// =============================
+// 🔒 ROTAS PROTEGIDAS (COM TOKEN)
+// =============================
+router.use(auth);
 
+// 👥 CLIENTES
 router.get("/clients", listClients);
 router.post("/clients", createClient);
+
+// 📦 ORDENS
 router.get("/orders", listOrders);
+
+// 📊 ESTATÍSTICAS (ANTES DO :id)
+router.get("/orders/stats", getOrderStats);
+
+// 🔎 BUSCAR POR ID
+router.get("/orders/:id", getOrderById);
+
+// ➕ CRIAR ORDEM
 router.post("/orders", createOrder);
+
+// 🔄 ATUALIZAR STATUS
 router.patch("/orders/:id/status", updateOrderStatus);
 
 export default router;

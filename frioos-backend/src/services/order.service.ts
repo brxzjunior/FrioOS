@@ -1,4 +1,5 @@
 import { all, get, run } from "../database/db";
+import crypto from "crypto";
 
 export type OrderStatus = "ABERTA" | "ANDAMENTO" | "FINALIZADA";
 export type OrderTipo = "INSTALACAO" | "MANUTENCAO" | "CONSERTO";
@@ -13,6 +14,10 @@ export type Order = {
   valor: number;
   status: OrderStatus;
   createdAt: string;
+
+  // dados do cliente (join)
+  clientNome?: string;
+  clientTelefone?: string;
 };
 
 type CreateOrderInput = {
@@ -27,12 +32,57 @@ export async function list(userId: string): Promise<Order[]> {
   if (!userId) throw new Error("userId é obrigatório.");
 
   return all<Order>(
-    `SELECT id, userId, clientId, tipo, descricao, obs, valor, status, createdAt
-     FROM orders
-     WHERE userId = ?
-     ORDER BY datetime(createdAt) DESC`,
+    `
+    SELECT 
+      orders.id,
+      orders.userId,
+      orders.clientId,
+      orders.tipo,
+      orders.descricao,
+      orders.obs,
+      orders.valor,
+      orders.status,
+      orders.createdAt,
+      clients.nome as clientNome,
+      clients.telefone as clientTelefone
+    FROM orders
+    JOIN clients ON clients.id = orders.clientId
+    WHERE orders.userId = ?
+    ORDER BY datetime(orders.createdAt) DESC
+    `,
     [userId],
   );
+}
+
+export async function getById(
+  userId: string,
+  id: string,
+): Promise<Order | null> {
+  if (!userId) throw new Error("userId é obrigatório.");
+  if (!id) throw new Error("id é obrigatório.");
+
+  const order = await get<Order>(
+    `
+    SELECT 
+      orders.id,
+      orders.userId,
+      orders.clientId,
+      orders.tipo,
+      orders.descricao,
+      orders.obs,
+      orders.valor,
+      orders.status,
+      orders.createdAt,
+      clients.nome as clientNome,
+      clients.telefone as clientTelefone
+    FROM orders
+    JOIN clients ON clients.id = orders.clientId
+    WHERE orders.id = ? AND orders.userId = ?
+    `,
+    [id, userId],
+  );
+
+  return order ?? null;
 }
 
 export async function create(
@@ -54,11 +104,12 @@ export async function create(
   if (Number.isNaN(valorNumber) || valorNumber < 0)
     throw new Error("valor inválido.");
 
-  // 🔒 Segurança: garante que esse clientId é do usuário logado
+  // segurança: garante que o cliente pertence ao usuário
   const client = await get<{ id: string }>(
     `SELECT id FROM clients WHERE id = ? AND userId = ?`,
     [clientId, userId],
   );
+
   if (!client) {
     throw new Error("Cliente inválido ou não pertence a este usuário.");
   }
@@ -76,8 +127,11 @@ export async function create(
   };
 
   await run(
-    `INSERT INTO orders (id, userId, clientId, tipo, descricao, obs, valor, status, createdAt)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `
+    INSERT INTO orders 
+    (id, userId, clientId, tipo, descricao, obs, valor, status, createdAt)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `,
     [
       order.id,
       order.userId,
@@ -104,11 +158,11 @@ export async function updateStatus(
   const orderId = id?.trim() ?? "";
   if (!orderId) throw new Error("id é obrigatório.");
 
-  // 🔒 Segurança: só atualiza se a OS for do usuário
   const exists = await get<{ id: string }>(
     `SELECT id FROM orders WHERE id = ? AND userId = ?`,
     [orderId, userId],
   );
+
   if (!exists) {
     throw new Error("OS não encontrada ou não pertence a este usuário.");
   }
@@ -120,4 +174,35 @@ export async function updateStatus(
   ]);
 
   return { id: orderId, status };
+}
+
+export async function stats(userId: string) {
+  if (!userId) throw new Error("userId é obrigatório.");
+
+  const rows = await all<{ status: OrderStatus; total: number }>(
+    `
+    SELECT status, COUNT(*) as total
+    FROM orders
+    WHERE userId = ?
+    GROUP BY status
+    `,
+    [userId],
+  );
+
+  const stats = {
+    abertas: 0,
+    andamento: 0,
+    finalizadas: 0,
+    total: 0,
+  };
+
+  for (const row of rows) {
+    if (row.status === "ABERTA") stats.abertas = row.total;
+    if (row.status === "ANDAMENTO") stats.andamento = row.total;
+    if (row.status === "FINALIZADA") stats.finalizadas = row.total;
+
+    stats.total += row.total;
+  }
+
+  return stats;
 }

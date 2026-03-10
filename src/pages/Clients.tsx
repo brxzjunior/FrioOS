@@ -1,85 +1,71 @@
 import { useEffect, useState } from "react";
 import {
-  createClient,
   getClients,
-  type Client,
+  createClient,
+  deleteClient,
 } from "../services/clientService";
+
+type Client = {
+  id: string;
+  name: string;
+};
 
 export default function Clients() {
   const [clients, setClients] = useState<Client[]>([]);
-  const [nome, setNome] = useState("");
-  const [telefone, setTelefone] = useState("");
-  const [endereco, setEndereco] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [name, setName] = useState("");
+  const [loading, setLoading] = useState(false);
 
   async function loadClients() {
-    try {
-      setLoading(true);
-      const data = await getClients();
-      setClients(data);
-    } finally {
-      setLoading(false);
-    }
+    const data = await getClients();
+    setClients(data);
   }
 
   useEffect(() => {
     loadClients();
   }, []);
 
-  async function handleAddClient() {
-    if (!nome.trim()) return;
+  async function handleCreate(e: React.FormEvent) {
+    e.preventDefault();
+    if (!name.trim()) return;
 
-    const newClient = await createClient({
-      nome: nome.trim(),
-      telefone: telefone.trim(),
-      endereco: endereco.trim(),
-    });
+    setLoading(true);
+    await createClient(name);
+    setName("");
+    await loadClients();
+    setLoading(false);
+  }
 
-    // atualiza a lista sem precisar refazer GET
-    setClients((prev) => [newClient, ...prev]);
-
-    setNome("");
-    setTelefone("");
-    setEndereco("");
+  async function handleDelete(id: string) {
+    await deleteClient(id);
+    await loadClients();
   }
 
   return (
-    <div style={{ padding: 20 }}>
+    <div style={{ padding: 20, maxWidth: 600 }}>
       <h2>Clientes</h2>
 
-      <div style={{ display: "grid", gap: 8, maxWidth: 420 }}>
+      <form onSubmit={handleCreate} style={{ display: "flex", gap: 10 }}>
         <input
-          placeholder="Nome"
-          value={nome}
-          onChange={(e) => setNome(e.target.value)}
+          placeholder="Nome do cliente"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
         />
-        <input
-          placeholder="Telefone"
-          value={telefone}
-          onChange={(e) => setTelefone(e.target.value)}
-        />
-        <input
-          placeholder="Endereço"
-          value={endereco}
-          onChange={(e) => setEndereco(e.target.value)}
-        />
-        <button onClick={handleAddClient}>Adicionar</button>
-      </div>
+        <button type="submit" disabled={loading}>
+          {loading ? "Salvando..." : "Adicionar"}
+        </button>
+      </form>
 
-      <hr />
-
-      {loading ? (
-        <p>Carregando...</p>
-      ) : (
-        <ul>
-          {clients.map((c) => (
-            <li key={c.id}>
-              <strong>{c.nome}</strong> — {c.telefone || "sem telefone"} —{" "}
-              {c.endereco || "sem endereço"}
-            </li>
-          ))}
-        </ul>
-      )}
+      <ul style={{ marginTop: 20 }}>
+        {clients.map((client) => (
+          <li
+            key={client.id}
+            style={{ display: "flex", justifyContent: "space-between" }}
+          >
+            {client.name}
+            <button onClick={() => handleDelete(client.id)}>Excluir</button>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

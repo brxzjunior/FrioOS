@@ -4,17 +4,16 @@ import routes from "./routes";
 import { initDb } from "./database/schema";
 import "dotenv/config";
 
-const app = express(); // ✅ primeiro cria o app
+const app = express();
 
-initDb(); // 🟣 depois prepara o banco
+initDb();
 
 app.use(cors());
 app.use(express.json());
 
-// ✅ depois registra rotas
+// ⬇️ IMPORTANTE: apenas isso
 app.use("/api", routes);
 
-// opcional (rota raiz)
 app.get("/", (req, res) => {
   res.send("API FrioOS online ✅");
 });
