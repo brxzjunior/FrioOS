@@ -1,4 +1,5 @@
 import { Router } from "express";
+
 import { signup, login } from "../controllers/auth.controller";
 import { auth } from "../middlewares/auth";
 
@@ -10,6 +11,8 @@ import {
   updateOrderStatus,
   getOrderById,
   getOrderStats,
+  updateOrder,
+  deleteOrder,
 } from "../controllers/order.controller";
 
 const router = Router();
@@ -43,5 +46,11 @@ router.post("/orders", createOrder);
 
 // 🔄 ATUALIZAR STATUS
 router.patch("/orders/:id/status", updateOrderStatus);
+
+// ✏️ EDITAR ORDEM
+router.put("/orders/:id", updateOrder);
+
+// 🗑️ DELETAR ORDEM
+router.delete("/orders/:id", deleteOrder);
 
 export default router;

@@ -15,7 +15,6 @@ export type Order = {
   status: OrderStatus;
   createdAt: string;
 
-  // dados do cliente (join)
   clientNome?: string;
   clientTelefone?: string;
 };
@@ -28,10 +27,30 @@ type CreateOrderInput = {
   valor: number;
 };
 
-export async function list(userId: string): Promise<Order[]> {
+type ListParams = {
+  page?: number;
+  limit?: number;
+  status?: OrderStatus;
+};
+
+export async function list(userId: string, params?: ListParams) {
   if (!userId) throw new Error("userId é obrigatório.");
 
-  return all<Order>(
+  const page = params?.page ?? 1;
+  const limit = params?.limit ?? 10;
+  const status = params?.status;
+
+  const offset = (page - 1) * limit;
+
+  let where = `WHERE orders.userId = ?`;
+  const values: any[] = [userId];
+
+  if (status) {
+    where += ` AND orders.status = ?`;
+    values.push(status);
+  }
+
+  const orders = await all<Order>(
     `
     SELECT 
       orders.id,
@@ -47,11 +66,31 @@ export async function list(userId: string): Promise<Order[]> {
       clients.telefone as clientTelefone
     FROM orders
     JOIN clients ON clients.id = orders.clientId
-    WHERE orders.userId = ?
+    ${where}
     ORDER BY datetime(orders.createdAt) DESC
+    LIMIT ? OFFSET ?
     `,
-    [userId],
+    [...values, limit, offset],
   );
+
+  const totalRow = await get<{ total: number }>(
+    `
+    SELECT COUNT(*) as total
+    FROM orders
+    ${where}
+    `,
+    values,
+  );
+
+  const total = totalRow?.total ?? 0;
+
+  return {
+    data: orders,
+    page,
+    limit,
+    total,
+    totalPages: Math.ceil(total / limit),
+  };
 }
 
 export async function getById(
@@ -104,7 +143,6 @@ export async function create(
   if (Number.isNaN(valorNumber) || valorNumber < 0)
     throw new Error("valor inválido.");
 
-  // segurança: garante que o cliente pertence ao usuário
   const client = await get<{ id: string }>(
     `SELECT id FROM clients WHERE id = ? AND userId = ?`,
     [clientId, userId],
@@ -205,4 +243,67 @@ export async function stats(userId: string) {
   }
 
   return stats;
+}
+
+export async function update(
+  userId: string,
+  id: string,
+  data: {
+    descricao?: string;
+    obs?: string;
+    valor?: number;
+    tipo?: OrderTipo;
+  },
+) {
+  if (!userId) throw new Error("userId é obrigatório.");
+  if (!id) throw new Error("id é obrigatório.");
+
+  const order = await get<{ id: string }>(
+    `SELECT id FROM orders WHERE id = ? AND userId = ?`,
+    [id, userId],
+  );
+
+  if (!order) {
+    throw new Error("Ordem não encontrada.");
+  }
+
+  await run(
+    `
+    UPDATE orders
+    SET
+      descricao = COALESCE(?, descricao),
+      obs = COALESCE(?, obs),
+      valor = COALESCE(?, valor),
+      tipo = COALESCE(?, tipo)
+    WHERE id = ? AND userId = ?
+    `,
+    [
+      data.descricao ?? null,
+      data.obs ?? null,
+      data.valor ?? null,
+      data.tipo ?? null,
+      id,
+      userId,
+    ],
+  );
+
+  return { id };
+}
+
+export async function remove(userId: string, id: string) {
+  if (!userId) throw new Error("userId é obrigatório.");
+  if (!id) throw new Error("id é obrigatório.");
+
+  const order = await get<{ id: string }>(
+    `SELECT id FROM orders WHERE id = ? AND userId = ?`,
+    [id, userId],
+  );
+
+  if (!order) {
+    throw new Error("Ordem não encontrada.");
+  }
+
+  await run(`DELETE FROM orders WHERE id = ? AND userId = ?`, [id, userId]);
+
+  return { id };
 }
