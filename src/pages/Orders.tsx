@@ -242,14 +242,14 @@ export default function Orders() {
                 </div>
               ) : null}
 
-              {(o as any).scheduledFor && (
-                <div>
-                  <strong>Data do serviço:</strong>{" "}
-                  {new Date(
-                    (o as any).scheduledFor as string,
-                  ).toLocaleDateString("pt-BR")}
-                </div>
-              )}
+              <div>
+                <strong>Data do serviço:</strong>{" "}
+                {(o as any).scheduledFor
+                  ? new Date((o as any).scheduledFor).toLocaleDateString(
+                      "pt-BR",
+                    )
+                  : "Não agendada"}
+              </div>
 
               <div>
                 <strong>Valor:</strong> {formatBRL(Number(o.valor))}

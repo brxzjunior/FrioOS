@@ -62,12 +62,12 @@ export default function NewOrder() {
       setCreatingOrder(true);
 
       await createOrder({
-        clientId,
         tipo,
-        descricao: descricao.trim(),
-        valor: Number(valor.replace(",", ".")),
-        obs: obs.trim() || undefined,
-        scheduledFor: scheduledFor || undefined, // envia data se tiver
+        descricao,
+        valor: Number(valor),
+        clientId,
+        obs,
+        scheduledFor: scheduledFor || undefined, // 👈 CORRETO
       });
 
       setDescricao("");
@@ -218,6 +218,7 @@ export default function NewOrder() {
           <label>
             Observações
             <textarea
+              rows={4}
               value={obs}
               onChange={(e) => setObs(e.target.value)}
               placeholder="Ex: equipamento antigo, cliente pediu retorno em 30 dias..."
@@ -229,7 +230,7 @@ export default function NewOrder() {
             Valor (R$)
             <input
               type="text"
-              placeholder="Ex: 150 ou 150,50"
+              placeholder="Ex: 200,50"
               value={valor}
               onChange={(e) =>
                 setValor(e.target.value.replace(/[^0-9.,]/g, ""))

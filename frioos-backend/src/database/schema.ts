@@ -52,4 +52,11 @@ export function initDb() {
       }
     });
   });
+  db.all(`PRAGMA table_info(orders)`, (err, rows: any[]) => {
+    if (err) return;
+    const hasScheduledFor = rows.some((r) => r.name === "scheduledFor");
+    if (!hasScheduledFor) {
+      db.run(`ALTER TABLE orders ADD COLUMN scheduledFor TEXT`);
+    }
+  }); // 👈 TEM QUE TER ISSO
 }

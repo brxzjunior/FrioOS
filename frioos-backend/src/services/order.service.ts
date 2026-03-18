@@ -64,6 +64,7 @@ export async function list(userId: string, params?: ListParams) {
     orders.valor,
     orders.status,
     orders.createdAt,
+    orders.scheduledFor,
     clients.nome as clientNome,
     clients.telefone as clientTelefone
   FROM orders
@@ -114,6 +115,7 @@ export async function getById(
     orders.valor,
     orders.status,
     orders.createdAt,
+    orders.scheduledFor,
     clients.nome as clientNome,
     clients.telefone as clientTelefone
   FROM orders
@@ -160,9 +162,10 @@ export async function create(
 
   await run(
     `
-  INSERT INTO orders 
-  (id, userId, clientId, tipo, descricao, obs, valor, status, createdAt)
-  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+INSERT INTO orders (
+  id, userId, clientId, tipo, descricao, obs, valor, status, createdAt, scheduledFor
+)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `,
     [
       orderId,
@@ -174,6 +177,7 @@ export async function create(
       valorNumber,
       "ABERTA",
       createdAt,
+      scheduledFor, // 👈 AQUI
     ],
   );
 
@@ -250,6 +254,7 @@ export async function update(
     obs?: string | null;
     valor?: number;
     tipo?: OrderTipo;
+    scheduledFor?: string | null;
   },
 ): Promise<Order> {
   if (!userId) throw new Error("userId é obrigatório.");
@@ -271,7 +276,8 @@ export async function update(
       descricao = COALESCE(?, descricao),
       obs       = COALESCE(?, obs),
       valor     = COALESCE(?, valor),
-      tipo      = COALESCE(?, tipo)
+      tipo      = COALESCE(?, tipo),
+      scheduledFor  = COALESCE(?, scheduledFor)
     WHERE id = ? AND userId = ?
     `,
     [
@@ -279,6 +285,7 @@ export async function update(
       data.obs ?? null,
       data.valor ?? null,
       data.tipo ?? null,
+      data.scheduledFor ?? null, // 👈 AQUI
       id,
       userId,
     ],
