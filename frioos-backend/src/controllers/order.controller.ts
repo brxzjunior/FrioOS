@@ -3,6 +3,7 @@ import * as orderService from "../services/order.service";
 
 const allowedStatus = ["ABERTA", "ANDAMENTO", "FINALIZADA"] as const;
 
+// 🔒 pegar userId
 function getUserId(req: Request) {
   const userId = (req as any).userId as string | undefined;
 
@@ -13,13 +14,44 @@ function getUserId(req: Request) {
   return userId;
 }
 
-// garante que o id sempre será string
+// 🔎 garantir id string
 function getParamId(req: Request) {
   const id = req.params.id;
   return Array.isArray(id) ? id[0] : id;
 }
 
+//
+// 📊 NOVOS ENDPOINTS (FATURAMENTO + SERVIÇOS)
+//
+
+export async function getRevenueByMonth(req: Request, res: Response) {
+  try {
+    const userId = getUserId(req);
+    const data = await orderService.revenueByMonth(userId);
+    return res.json(data);
+  } catch (err: any) {
+    return res.status(500).json({
+      message: err.message ?? "Erro ao buscar faturamento",
+    });
+  }
+}
+
+export async function getMostUsedServices(req: Request, res: Response) {
+  try {
+    const userId = getUserId(req);
+    const data = await orderService.mostUsedService(userId);
+    return res.json(data);
+  } catch (err: any) {
+    return res.status(500).json({
+      message: err.message ?? "Erro ao buscar serviços",
+    });
+  }
+}
+
+//
 // 📋 LISTAR ORDENS
+//
+
 export async function listOrders(req: Request, res: Response) {
   try {
     const userId = getUserId(req);
@@ -35,7 +67,7 @@ export async function listOrders(req: Request, res: Response) {
 
     if (status && !allowedStatus.includes(status)) {
       return res.status(400).json({
-        message: "Status inválido. Use: ABERTA, ANDAMENTO ou FINALIZADA.",
+        message: "Status inválido.",
       });
     }
 
@@ -45,8 +77,6 @@ export async function listOrders(req: Request, res: Response) {
       status,
     });
 
-    console.log("GET /orders ->", JSON.stringify(orders, null, 2)); // <= ADD
-
     return res.json(orders);
   } catch (err: any) {
     return res.status(401).json({
@@ -55,7 +85,10 @@ export async function listOrders(req: Request, res: Response) {
   }
 }
 
+//
 // ➕ CRIAR ORDEM
+//
+
 export async function createOrder(req: Request, res: Response) {
   try {
     const userId = getUserId(req);
@@ -70,7 +103,10 @@ export async function createOrder(req: Request, res: Response) {
   }
 }
 
-// 🔎 BUSCAR ORDEM POR ID
+//
+// 🔎 BUSCAR POR ID
+//
+
 export async function getOrderById(req: Request, res: Response) {
   try {
     const userId = getUserId(req);
@@ -92,7 +128,10 @@ export async function getOrderById(req: Request, res: Response) {
   }
 }
 
-// 🔄 ATUALIZAR STATUS
+//
+// 🔄 STATUS
+//
+
 export async function updateOrderStatus(req: Request, res: Response) {
   try {
     const userId = getUserId(req);
@@ -102,7 +141,7 @@ export async function updateOrderStatus(req: Request, res: Response) {
 
     if (!status || !allowedStatus.includes(status as any)) {
       return res.status(400).json({
-        message: "Status inválido. Use: ABERTA, ANDAMENTO ou FINALIZADA.",
+        message: "Status inválido.",
       });
     }
 
@@ -116,7 +155,10 @@ export async function updateOrderStatus(req: Request, res: Response) {
   }
 }
 
-// 📊 ESTATÍSTICAS
+//
+// 📊 STATS
+//
+
 export async function getOrderStats(req: Request, res: Response) {
   try {
     const userId = getUserId(req);
@@ -131,7 +173,10 @@ export async function getOrderStats(req: Request, res: Response) {
   }
 }
 
-// ✏️ EDITAR ORDEM
+//
+// ✏️ EDITAR
+//
+
 export async function updateOrder(req: Request, res: Response) {
   try {
     const userId = getUserId(req);
@@ -147,7 +192,10 @@ export async function updateOrder(req: Request, res: Response) {
   }
 }
 
-// 🗑️ DELETAR ORDEM
+//
+// 🗑️ DELETE
+//
+
 export async function deleteOrder(req: Request, res: Response) {
   try {
     const userId = getUserId(req);

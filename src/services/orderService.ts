@@ -63,3 +63,12 @@ export async function updateOrder(
   const res = await api.put<Order>(`/orders/${id}`, data);
   return res.data;
 }
+export async function getRevenueByMonth() {
+  const res = await api.get("/orders/revenue/month");
+  return res.data;
+}
+
+export async function getMostUsedServices() {
+  const res = await api.get("/orders/stats/services");
+  return res.data;
+}

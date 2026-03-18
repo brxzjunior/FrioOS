@@ -1,19 +1,31 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getOrderStats, type OrderStats } from "../services/statsService.ts";
+import {
+  getRevenueByMonth,
+  getMostUsedServices,
+} from "../services/orderService";
 
 export default function Dashboard() {
   const [stats, setStats] = useState<OrderStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [revenue, setRevenue] = useState<any[]>([]);
+  const [services, setServices] = useState<any[]>([]);
 
   useEffect(() => {
     async function fetchStats() {
       try {
         setLoading(true);
         setError(null);
-        const data = await getOrderStats();
-        setStats(data);
+
+        const statsData = await getOrderStats();
+        const revenueData = await getRevenueByMonth();
+        const servicesData = await getMostUsedServices();
+
+        setStats(statsData);
+        setRevenue(revenueData);
+        setServices(servicesData);
       } catch (err) {
         console.error(err);
         setError("Erro ao carregar estatísticas.");
@@ -69,6 +81,63 @@ export default function Dashboard() {
         <Card title="Abertas" value={stats.abertas} />
         <Card title="Em andamento" value={stats.andamento} />
         <Card title="Finalizadas" value={stats.finalizadas} />
+      </div>
+
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
+          gap: "1rem",
+          marginBottom: "1.5rem",
+        }}
+      >
+        {/* 💰 FATURAMENTO */}
+        <div
+          style={{
+            border: "1px solid #e5e7eb",
+            borderRadius: "0.5rem",
+            padding: "1rem",
+            backgroundColor: "#fff",
+          }}
+        >
+          <h3 style={{ marginBottom: "0.5rem" }}>Faturamento por mês</h3>
+
+          {revenue.length === 0 ? (
+            <p>Sem dados</p>
+          ) : (
+            revenue.map((r: any) => (
+              <div key={r.mes}>
+                {new Date(r.mes + "-01").toLocaleDateString("pt-BR", {
+                  month: "long",
+                  year: "numeric",
+                })}{" "}
+                → R$ {r.total}
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* 🔧 SERVIÇOS */}
+        <div
+          style={{
+            border: "1px solid #e5e7eb",
+            borderRadius: "0.5rem",
+            padding: "1rem",
+            backgroundColor: "#fff",
+          }}
+        >
+          <h3 style={{ marginBottom: "0.5rem" }}>Serviços mais realizados</h3>
+
+          {services.length === 0 ? (
+            <p>Sem dados</p>
+          ) : (
+            services.map((s: any) => (
+              <div key={s.tipo}>
+                {s.tipo} → {s.total}
+              </div>
+            ))
+          )}
+        </div>
       </div>
 
       {/* Hub de navegação */}

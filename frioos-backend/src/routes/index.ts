@@ -14,6 +14,10 @@ import {
   updateOrder,
   deleteOrder,
 } from "../controllers/order.controller";
+import {
+  getRevenueByMonth,
+  getMostUsedServices,
+} from "../controllers/order.controller";
 
 const router = Router();
 
@@ -37,6 +41,12 @@ router.get("/orders", listOrders);
 
 // 📊 ESTATÍSTICAS (ANTES DO :id)
 router.get("/orders/stats", getOrderStats);
+
+// 💰 FATURAMENTO POR MÊS
+router.get("/orders/revenue/month", getRevenueByMonth);
+
+// 🔧 SERVIÇOS MAIS FEITOS
+router.get("/orders/stats/services", getMostUsedServices);
 
 // 🔎 BUSCAR POR ID
 router.get("/orders/:id", getOrderById);

@@ -314,3 +314,34 @@ export async function remove(userId: string, id: string) {
 
   return { id };
 }
+
+export async function revenueByMonth(userId: string) {
+  return await all(
+    `
+    SELECT 
+      strftime('%Y-%m', createdAt) as mes,
+      SUM(valor) as total
+    FROM orders
+    WHERE userId = ? AND status = 'FINALIZADA'
+    GROUP BY mes
+    ORDER BY mes DESC
+    `,
+    [userId],
+  );
+}
+export async function mostUsedService(userId: string) {
+  if (!userId) throw new Error("userId é obrigatório.");
+
+  return await all(
+    `
+    SELECT 
+      tipo,
+      COUNT(*) as total
+    FROM orders
+    WHERE userId = ?
+    GROUP BY tipo
+    ORDER BY total DESC
+    `,
+    [userId],
+  );
+}

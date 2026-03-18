@@ -1,6 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
-import { getOrders, type Order } from "../services/orderService.ts";
-import { getClients } from "../services/clientService.ts";
+import React, { useEffect, useMemo, useState } from "react";
+import {
+  getOrders,
+  type Order,
+  getRevenueByMonth,
+  getMostUsedServices,
+} from "../services/orderService";
+import { getClients } from "../services/clientService";
 import { generateOrderPdf } from "../utils/orderPdf";
 import toast from "react-hot-toast";
 
@@ -12,6 +17,18 @@ type ClientLite = {
 };
 
 type OrderStatusFilter = "ALL" | "ABERTA" | "ANDAMENTO" | "FINALIZADA";
+
+const thStyle: React.CSSProperties = {
+  textAlign: "left",
+  padding: "0.5rem",
+  borderBottom: "1px solid #e5e7eb",
+  backgroundColor: "#f9fafb",
+};
+
+const tdStyle: React.CSSProperties = {
+  padding: "0.5rem",
+  borderBottom: "1px solid #e5e7eb",
+};
 
 export default function Reports() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -29,19 +46,27 @@ export default function Reports() {
   const [page, setPage] = useState(1);
   const pageSize = 10;
 
+  const [revenue, setRevenue] = useState<any[]>([]);
+  const [services, setServices] = useState<any[]>([]);
+
   useEffect(() => {
     async function fetchData() {
       try {
         setLoading(true);
         setError(null);
 
-        const [ordersRes, clientsRes] = await Promise.all([
-          getOrders(),
-          getClients(),
-        ]);
+        const [ordersRes, clientsRes, revenueRes, servicesRes] =
+          await Promise.all([
+            getOrders(),
+            getClients(),
+            getRevenueByMonth(),
+            getMostUsedServices(),
+          ]);
 
         setOrders(Array.isArray(ordersRes) ? ordersRes : []);
         setClients(clientsRes as ClientLite[]);
+        setRevenue(revenueRes || []);
+        setServices(servicesRes || []);
       } catch (err) {
         console.error(err);
         setError("Erro ao carregar relatórios.");
@@ -141,6 +166,50 @@ export default function Reports() {
   return (
     <div style={{ padding: "1.5rem" }}>
       <h2 style={{ marginBottom: "1rem" }}>Relatórios</h2>
+
+      {/* Cards de resumo */}
+      <div
+        style={{
+          marginBottom: "1rem",
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
+          gap: "1rem",
+        }}
+      >
+        {/* FATURAMENTO */}
+        <div style={{ border: "1px solid #e5e7eb", padding: "1rem" }}>
+          <h3>Faturamento por mês</h3>
+
+          {revenue.length === 0 ? (
+            <p>Nenhum dado de faturamento.</p>
+          ) : (
+            revenue.map((r: any) => (
+              <div key={r.mes}>
+                {new Date(r.mes + "-01").toLocaleDateString("pt-BR", {
+                  month: "long",
+                  year: "numeric",
+                })}{" "}
+                → R$ {r.total}
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* SERVIÇOS */}
+        <div style={{ border: "1px solid #e5e7eb", padding: "1rem" }}>
+          <h3>Serviços mais realizados</h3>
+
+          {services.length === 0 ? (
+            <p>Nenhum dado de serviços.</p>
+          ) : (
+            services.map((s: any) => (
+              <div key={s.tipo}>
+                {s.tipo} → {s.total}
+              </div>
+            ))
+          )}
+        </div>
+      </div>
 
       {/* Filtros */}
       <div
@@ -386,15 +455,3 @@ export default function Reports() {
     </div>
   );
 }
-
-const thStyle: React.CSSProperties = {
-  textAlign: "left",
-  padding: "0.5rem",
-  borderBottom: "1px solid #e5e7eb",
-  backgroundColor: "#f9fafb",
-};
-
-const tdStyle: React.CSSProperties = {
-  padding: "0.5rem",
-  borderBottom: "1px solid #e5e7eb",
-};
