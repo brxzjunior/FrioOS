@@ -50,7 +50,7 @@ export async function signup(req: Request, res: Response) {
 
     await run(
       `INSERT INTO users (id, name, email, passwordHash, createdAt)
-       VALUES (?, ?, ?, ?, ?)`,
+        VALUES (?, ?, ?, ?, ?)`,
       [user.id, user.name, user.email, user.passwordHash, user.createdAt],
     );
 

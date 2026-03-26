@@ -23,22 +23,25 @@ export default function Login() {
     try {
       const data = await login({ email, password });
 
-      console.log("TOKEN RECEBIDO:", data.token);
-
       setToken(data.token);
-
-      console.log("TOKEN SALVO:", localStorage.getItem("frioos_token"));
 
       toast.success("Login realizado com sucesso.");
       navigate("/dashboard", { replace: true });
     } catch (err: any) {
-      console.error("ERRO LOGIN:", err);
       const msg =
         err?.response?.data?.message ?? "Erro ao logar. Verifique os dados.";
       toast.error(msg);
     } finally {
       setLoading(false);
     }
+  }
+
+  function handleGoogleLogin(e: React.MouseEvent<HTMLButtonElement>) {
+    e.preventDefault(); // 🔥 garante que NÃO vai submeter o form
+
+    console.log("👉 Redirecionando para Google..."); // debug opcional
+
+    window.location.href = "http://localhost:3333/auth/google";
   }
 
   return (
@@ -65,6 +68,11 @@ export default function Login() {
 
         <button type="button" onClick={() => navigate("/signup")}>
           Criar conta
+        </button>
+
+        {/* 🔥 GOOGLE LOGIN */}
+        <button type="button" onClick={handleGoogleLogin}>
+          Entrar com Google
         </button>
       </form>
     </div>

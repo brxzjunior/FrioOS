@@ -10,6 +10,7 @@ import Clients from "../pages/Clients";
 import Orders from "../pages/Orders";
 import NewOrder from "../pages/NewOrder";
 import Reports from "../pages/Reports";
+import LoginSuccess from "../pages/LoginSuccess";
 
 export default function AppRoutes() {
   return (
@@ -18,6 +19,9 @@ export default function AppRoutes() {
         {/* públicas */}
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
+
+        {/* 🔥 ESSA LINHA É A CORREÇÃO */}
+        <Route path="/login/success" element={<LoginSuccess />} />
 
         {/* privadas */}
         <Route element={<ProtectedRoute />}>

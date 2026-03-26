@@ -8,12 +8,26 @@ export function initDb() {
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
         email TEXT NOT NULL UNIQUE,
-        passwordHash TEXT NOT NULL,
+        passwordHash TEXT,
+        googleId TEXT,
         createdAt TEXT NOT NULL
       )
     `);
 
-    // ✅ clients (FALTAVA ISSO)
+    // 🔥 MIGRAÇÃO googleId (caso já exista tabela)
+    db.all(`PRAGMA table_info(users)`, (err, rows: any[]) => {
+      if (err) return;
+
+      const hasGoogleId = rows.some((r) => r.name === "googleId");
+      if (!hasGoogleId) {
+        db.run(`ALTER TABLE users ADD COLUMN googleId TEXT`);
+      }
+
+      const hasPasswordHash = rows.some((r) => r.name === "passwordHash");
+      // (já existe, mas deixei aqui como padrão de migração)
+    });
+
+    // ✅ clients
     db.run(`
       CREATE TABLE IF NOT EXISTS clients (
         id TEXT PRIMARY KEY,
@@ -38,25 +52,25 @@ export function initDb() {
         valor REAL NOT NULL,
         status TEXT NOT NULL,
         createdAt TEXT NOT NULL,
+        scheduledFor TEXT,
         FOREIGN KEY (userId) REFERENCES users(id),
         FOREIGN KEY (clientId) REFERENCES clients(id)
       )
     `);
 
-    // Migração coluna obs
+    // 🔥 MIGRAÇÕES orders
     db.all(`PRAGMA table_info(orders)`, (err, rows: any[]) => {
       if (err) return;
+
       const hasObs = rows.some((r) => r.name === "obs");
       if (!hasObs) {
         db.run(`ALTER TABLE orders ADD COLUMN obs TEXT`);
       }
+
+      const hasScheduledFor = rows.some((r) => r.name === "scheduledFor");
+      if (!hasScheduledFor) {
+        db.run(`ALTER TABLE orders ADD COLUMN scheduledFor TEXT`);
+      }
     });
   });
-  db.all(`PRAGMA table_info(orders)`, (err, rows: any[]) => {
-    if (err) return;
-    const hasScheduledFor = rows.some((r) => r.name === "scheduledFor");
-    if (!hasScheduledFor) {
-      db.run(`ALTER TABLE orders ADD COLUMN scheduledFor TEXT`);
-    }
-  }); // 👈 TEM QUE TER ISSO
 }

@@ -167,7 +167,13 @@ export async function getOrderStats(req: Request, res: Response) {
 
     return res.json(stats);
   } catch (err: any) {
-    return res.status(400).json({
+    if (err.message === "Usuário não autenticado.") {
+      return res.status(401).json({
+        message: err.message,
+      });
+    }
+
+    return res.status(500).json({
       message: err.message ?? "Erro ao buscar estatísticas",
     });
   }
