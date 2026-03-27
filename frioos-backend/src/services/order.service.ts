@@ -166,7 +166,7 @@ INSERT INTO orders (
   id, userId, clientId, tipo, descricao, obs, valor, status, createdAt, scheduledFor
 )
 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `,
+`,
     [
       orderId,
       userId,
@@ -177,7 +177,7 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       valorNumber,
       "ABERTA",
       createdAt,
-      scheduledFor, // 👈 AQUI
+      scheduledFor,
     ],
   );
 
