@@ -319,10 +319,10 @@ export async function revenueByMonth(userId: string) {
   return await all(
     `
     SELECT 
-      strftime('%Y-%m', createdAt) as mes,
+      strftime('%Y-%m', scheduledFor, '+3 hours') as mes,
       SUM(valor) as total
     FROM orders
-    WHERE userId = ? AND status = 'FINALIZADA'
+    WHERE userId = ? AND status = 'FINALIZADA' AND scheduledFor IS NOT NULL
     GROUP BY mes
     ORDER BY mes DESC
     `,

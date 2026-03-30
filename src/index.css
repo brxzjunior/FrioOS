@@ -1,25 +1,36 @@
 @import url("https://fonts.googleapis.com/css2?family=Trispace:wght@100..800&display=swap");
+
+/* ── RESET & BASE ───────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 * {
   font-family: "Trispace", sans-serif;
 }
+
 body {
   margin: 0;
-  font-family: Arial, sans-serif;
   background-color: #f5f6fa;
+  font-size: 15px;
+  -webkit-text-size-adjust: 100%;
 }
 
-/* Layout */
+/* ── LAYOUT ─────────────────────────────────────────────── */
 .app-container {
   display: flex;
   height: 100vh;
 }
 
-/* Sidebar */
+/* ── SIDEBAR ────────────────────────────────────────────── */
 .sidebar {
   width: 220px;
   background: #fff;
   border-right: 1px solid #e5e7eb;
   padding: 20px;
+  flex-shrink: 0;
 }
 
 .sidebar h2 {
@@ -35,14 +46,14 @@ body {
   text-decoration: none;
 }
 
-/* Conteúdo */
+/* ── MAIN CONTENT ───────────────────────────────────────── */
 .main {
   flex: 1;
   padding: 30px;
   overflow-y: auto;
 }
 
-/* Card */
+/* ── CARD ───────────────────────────────────────────────── */
 .card {
   background: #fff;
   padding: 20px;
@@ -51,16 +62,19 @@ body {
   margin-bottom: 20px;
 }
 
-/* Inputs */
+/* ── INPUTS ─────────────────────────────────────────────── */
 .input {
   width: 100%;
   padding: 10px;
   border-radius: 8px;
   border: 1px solid #ccc;
   margin-top: 5px;
+  font-size: 15px;
+  /* evita zoom automático no iOS (mínimo 16px no input) */
+  font-size: max(16px, 1em);
 }
 
-/* Botão */
+/* ── BOTÃO ──────────────────────────────────────────────── */
 .button {
   background: #4f46e5;
   color: white;
@@ -68,8 +82,206 @@ body {
   border: none;
   border-radius: 8px;
   cursor: pointer;
+  font-size: 14px;
+  /* área de toque mínima recomendada */
+  min-height: 44px;
+  min-width: 44px;
 }
 
 .button:hover {
   background: #4338ca;
+}
+
+.button:active {
+  background: #3730a3;
+  transform: scale(0.98);
+}
+
+/* ── TABELA RESPONSIVA ──────────────────────────────────── */
+.table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 520px; /* garante scroll horizontal em vez de quebrar */
+}
+
+th,
+td {
+  padding: 10px 8px;
+  text-align: left;
+  border-bottom: 1px solid #e5e7eb;
+  white-space: nowrap;
+}
+
+th {
+  font-weight: 600;
+  color: #555;
+  font-size: 13px;
+}
+
+/* ── GRID UTILITÁRIO ────────────────────────────────────── */
+.grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+/* ── PAGINAÇÃO ──────────────────────────────────────────── */
+.pagination {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 15px;
+  flex-wrap: wrap;
+}
+
+.pagination button {
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  cursor: pointer;
+  min-height: 40px;
+}
+
+.pagination button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ── MODAL ──────────────────────────────────────────────── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  padding: 16px; /* evita modal colado na borda em mobile */
+}
+
+.modal-box {
+  background: #fff;
+  border-radius: 12px;
+  padding: 24px;
+  width: 100%;
+  max-width: 440px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+/* ── FORM LABEL ─────────────────────────────────────────── */
+.field {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 12px;
+}
+
+.field span {
+  font-size: 13px;
+  color: #555;
+  margin-bottom: 4px;
+}
+
+/* ════════════════════════════════════════════════════════
+   BREAKPOINTS
+   ════════════════════════════════════════════════════════ */
+
+/* ── TABLET  (≤ 1024px) ─────────────────────────────────── */
+@media (max-width: 1024px) {
+  .main {
+    padding: 20px;
+  }
+
+  .grid-3 {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* ── MOBILE  (≤ 768px) ──────────────────────────────────── */
+@media (max-width: 768px) {
+  .main {
+    padding: 14px;
+  }
+
+  .card {
+    padding: 14px;
+  }
+
+  h1 {
+    font-size: 20px;
+  }
+
+  h3 {
+    font-size: 15px;
+  }
+
+  /* botões de ação lado a lado viram coluna */
+  .actions-row {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .actions-row .button,
+  .actions-row button {
+    width: 100%;
+  }
+
+  .grid-2,
+  .grid-3 {
+    grid-template-columns: 1fr;
+  }
+
+  /* select de status dentro dos cards de OS */
+  .actions-row select {
+    width: 100%;
+  }
+
+  /* tabela: scroll horizontal */
+  table {
+    font-size: 13px;
+  }
+
+  th,
+  td {
+    padding: 8px 6px;
+  }
+
+  .modal-box {
+    padding: 16px;
+  }
+}
+
+/* ── SMALL MOBILE  (≤ 480px) ────────────────────────────── */
+@media (max-width: 480px) {
+  .main {
+    padding: 10px;
+  }
+
+  .card {
+    padding: 12px;
+    border-radius: 8px;
+  }
+
+  .button {
+    padding: 10px;
+    font-size: 13px;
+  }
+
+  .pagination {
+    justify-content: center;
+  }
 }

@@ -7,6 +7,7 @@ import {
   updateOrder,
   type Order,
   type OrderStatus,
+  type OrderTipo,
 } from "../services/orderService";
 import { generateOrderPdf } from "../utils/orderPdf";
 import toast from "react-hot-toast";
@@ -19,6 +20,7 @@ export default function Orders() {
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
   const [editingOrder, setEditingOrder] = useState<Order | null>(null);
+  const [editTipo, setEditTipo] = useState<OrderTipo>("MANUTENCAO");
   const [editDescricao, setEditDescricao] = useState("");
   const [editValor, setEditValor] = useState("");
   const [editObs, setEditObs] = useState("");
@@ -38,7 +40,6 @@ export default function Orders() {
         getOrders(),
         getClients(),
       ]);
-
       setOrders(Array.isArray(ordersData) ? ordersData : []);
       setClients(clientsData);
     } catch {
@@ -67,7 +68,6 @@ export default function Orders() {
 
   async function handleDelete(id: string) {
     if (!confirm("Excluir esta OS?")) return;
-
     try {
       await deleteOrder(id);
       setOrders((prev) => prev.filter((o) => o.id !== id));
@@ -89,21 +89,18 @@ export default function Orders() {
     generateOrderPdf(order, client);
     toast.success("PDF gerado.");
   }
+
   function openGoogleReminder(order: Order) {
     const client = clientMap.get(order.clientId);
-
     const title = encodeURIComponent(
       `Serviço: ${order.tipo} - ${client?.nome ?? ""}`,
     );
-
     const details = encodeURIComponent(
-      `${order.descricao}\n\nObs: ${(order as any).obs ?? "-"}`,
+      `${order.descricao}\n\nObs: ${order.obs ?? "-"}`,
     );
-
-    const baseDate = (order as any).scheduledFor
-      ? new Date((order as any).scheduledFor)
+    const baseDate = order.scheduledFor
+      ? new Date(order.scheduledFor)
       : new Date();
-
     const start = new Date(
       baseDate.getFullYear(),
       baseDate.getMonth(),
@@ -111,7 +108,6 @@ export default function Orders() {
       8,
       0,
     );
-
     const end = new Date(
       baseDate.getFullYear(),
       baseDate.getMonth(),
@@ -119,46 +115,47 @@ export default function Orders() {
       9,
       0,
     );
-
     const toGDate = (d: Date) =>
       d.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
-
-    const dates = `${toGDate(start)}/${toGDate(end)}`;
-
-    const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&details=${details}&dates=${dates}`;
-
+    const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&details=${details}&dates=${toGDate(start)}/${toGDate(end)}`;
     window.open(url, "_blank");
   }
 
   function startEdit(order: Order) {
     setEditingOrder(order);
+    setEditTipo(order.tipo);
     setEditDescricao(order.descricao);
     setEditValor(String(order.valor));
-    setEditObs((order as any).obs ?? "");
+    setEditObs(order.obs ?? "");
     setEditScheduledFor(
-      (order as any).scheduledFor
-        ? (order as any).scheduledFor.slice(0, 10)
-        : "",
+      order.scheduledFor ? order.scheduledFor.slice(0, 10) : "",
     );
   }
 
   async function handleSaveEdit() {
     if (!editingOrder) return;
-
+    if (!editDescricao.trim()) {
+      toast.error("Preencha a descrição.");
+      return;
+    }
+    if (!editValor.trim() || isNaN(Number(editValor))) {
+      toast.error("Preencha um valor válido.");
+      return;
+    }
     try {
       setSavingEdit(true);
-
       const updated = await updateOrder(editingOrder.id, {
+        tipo: editTipo,
         descricao: editDescricao,
         valor: Number(editValor),
-        obs: editObs,
+        obs: editObs || null,
         scheduledFor: editScheduledFor || null,
       });
-
       setOrders((prev) => prev.map((o) => (o.id === updated.id ? updated : o)));
-
-      toast.success("Atualizado.");
+      toast.success("OS atualizada.");
       setEditingOrder(null);
+    } catch {
+      toast.error("Erro ao salvar.");
     } finally {
       setSavingEdit(false);
     }
@@ -198,35 +195,34 @@ export default function Orders() {
       ) : (
         visibleOrders.map((o) => {
           const client = clientMap.get(o.clientId);
-
           return (
             <div key={o.id} className="card">
-              <h3>
+              <h3 style={{ marginTop: 0 }}>
                 {o.tipo} — {o.status}
               </h3>
-
-              <p>
+              <p style={{ margin: "4px 0" }}>
                 <strong>Cliente:</strong> {client?.nome}
               </p>
-              <p>
+              <p style={{ margin: "4px 0" }}>
                 <strong>Descrição:</strong> {o.descricao}
               </p>
-
-              <p>
+              <p style={{ margin: "4px 0" }}>
                 <strong>Data:</strong>{" "}
-                {(o as any).scheduledFor
-                  ? new Date((o as any).scheduledFor).toLocaleDateString()
+                {o.scheduledFor
+                  ? new Date(o.scheduledFor).toLocaleDateString("pt-BR")
                   : "Não definida"}
               </p>
-
-              <p>
+              <p style={{ margin: "4px 0 12px" }}>
                 <strong>Valor:</strong> {formatBRL(o.valor)}
               </p>
 
-              {/* AÇÕES */}
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <div
+                className="actions-row"
+                style={{ display: "flex", gap: 8, flexWrap: "wrap" }}
+              >
                 <select
                   className="input"
+                  style={{ maxWidth: 160 }}
                   value={o.status}
                   onChange={(e) =>
                     handleStatusChange(o.id, e.target.value as OrderStatus)
@@ -237,15 +233,12 @@ export default function Orders() {
                   <option value="ANDAMENTO">ANDAMENTO</option>
                   <option value="FINALIZADA">FINALIZADA</option>
                 </select>
-
                 <button className="button" onClick={() => startEdit(o)}>
                   Editar
                 </button>
-
                 <button className="button" onClick={() => handleGeneratePdf(o)}>
                   PDF
                 </button>
-
                 <button className="button" onClick={() => handleDelete(o.id)}>
                   Excluir
                 </button>
@@ -253,7 +246,7 @@ export default function Orders() {
                   className="button"
                   onClick={() => openGoogleReminder(o)}
                 >
-                  Lembrete Google
+                  📅 Lembrete
                 </button>
               </div>
             </div>
@@ -263,42 +256,89 @@ export default function Orders() {
 
       {/* MODAL */}
       {editingOrder && (
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,0.4)",
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-          }}
-        >
-          <div className="card" style={{ width: 400 }}>
-            <h3>Editar OS</h3>
+        <div className="modal-overlay">
+          <div className="modal-box">
+            <h3 style={{ marginTop: 0, marginBottom: 16 }}>Editar OS</h3>
 
-            <textarea
-              className="input"
-              value={editDescricao}
-              onChange={(e) => setEditDescricao(e.target.value)}
-            />
+            <div className="field">
+              <span>Tipo</span>
+              <select
+                className="input"
+                value={editTipo}
+                onChange={(e) => setEditTipo(e.target.value as OrderTipo)}
+              >
+                <option value="INSTALACAO">Instalação</option>
+                <option value="MANUTENCAO">Manutenção</option>
+                <option value="LIMPEZA">Limpeza</option>
+                <option value="RETIRADA">Retirada</option>
+              </select>
+            </div>
 
-            <input
-              type="date"
-              className="input"
-              value={editScheduledFor}
-              onChange={(e) => setEditScheduledFor(e.target.value)}
-            />
+            <div className="field">
+              <span>Data do serviço</span>
+              <input
+                type="date"
+                className="input"
+                value={editScheduledFor}
+                onChange={(e) => setEditScheduledFor(e.target.value)}
+              />
+            </div>
 
-            <textarea
-              className="input"
-              value={editObs}
-              onChange={(e) => setEditObs(e.target.value)}
-            />
+            <div className="field">
+              <span>Valor (R$)</span>
+              <input
+                className="input"
+                inputMode="decimal"
+                value={editValor}
+                onChange={(e) =>
+                  setEditValor(e.target.value.replace(/[^0-9.,]/g, ""))
+                }
+                placeholder="0,00"
+              />
+            </div>
 
-            <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
-              <button onClick={() => setEditingOrder(null)}>Cancelar</button>
-              <button className="button" onClick={handleSaveEdit}>
-                {savingEdit ? "Salvando..." : "Salvar"}
+            <div className="field">
+              <span>Descrição</span>
+              <textarea
+                className="input"
+                rows={3}
+                value={editDescricao}
+                onChange={(e) => setEditDescricao(e.target.value)}
+              />
+            </div>
+
+            <div className="field" style={{ marginBottom: 16 }}>
+              <span>Observações</span>
+              <textarea
+                className="input"
+                rows={3}
+                value={editObs}
+                onChange={(e) => setEditObs(e.target.value)}
+              />
+            </div>
+
+            <div
+              style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}
+            >
+              <button
+                onClick={() => setEditingOrder(null)}
+                disabled={savingEdit}
+                style={{
+                  padding: "10px 16px",
+                  borderRadius: 8,
+                  border: "1px solid #ccc",
+                  cursor: "pointer",
+                  minHeight: 44,
+                }}
+              >
+                Cancelar
+              </button>
+              <button
+                className="button"
+                onClick={handleSaveEdit}
+                disabled={savingEdit}
+              >
+                {savingEdit ? "Salvando..." : "Salvar alterações"}
               </button>
             </div>
           </div>

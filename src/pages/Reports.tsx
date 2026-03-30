@@ -5,20 +5,17 @@ import {
   getRevenueByMonth,
   getMostUsedServices,
 } from "../services/orderService";
-import { getClients } from "../services/clientService";
+import { getClients, type Client } from "../services/clientService";
 import { generateOrderPdf } from "../utils/orderPdf";
 import toast from "react-hot-toast";
-
-type ClientLite = {
-  id: string;
-  nome: string;
-};
 
 type OrderStatusFilter = "ALL" | "ABERTA" | "ANDAMENTO" | "FINALIZADA";
 
 export default function Reports() {
   const [orders, setOrders] = useState<Order[]>([]);
-  const [clients, setClients] = useState<ClientLite[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
+  const [revenue, setRevenue] = useState<any[]>([]);
+  const [services, setServices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [statusFilter, setStatusFilter] = useState<OrderStatusFilter>("ALL");
@@ -33,13 +30,18 @@ export default function Reports() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const [ordersRes, clientsRes] = await Promise.all([
-          getOrders(),
-          getClients(),
-        ]);
+        const [ordersRes, clientsRes, revenueRes, servicesRes] =
+          await Promise.all([
+            getOrders(),
+            getClients(),
+            getRevenueByMonth(),
+            getMostUsedServices(),
+          ]);
 
         setOrders(Array.isArray(ordersRes) ? ordersRes : []);
-        setClients(clientsRes as ClientLite[]);
+        setClients(clientsRes);
+        setRevenue(Array.isArray(revenueRes) ? revenueRes : []);
+        setServices(Array.isArray(servicesRes) ? servicesRes : []);
       } catch {
         toast.error("Erro ao carregar relatórios.");
       } finally {
@@ -56,12 +58,20 @@ export default function Reports() {
 
       if (clientFilter && order.clientId !== clientFilter) return false;
 
+      const orderDate = order.scheduledFor
+        ? new Date(order.scheduledFor).getTime()
+        : 0;
+
+      if (!orderDate) return true;
+
       if (startDate) {
-        if (new Date(order.createdAt) < new Date(startDate)) return false;
+        const start = new Date(startDate + "T00:00:00").getTime();
+        if (orderDate < start) return false;
       }
 
       if (endDate) {
-        if (new Date(order.createdAt) > new Date(endDate)) return false;
+        const end = new Date(endDate + "T23:59:59").getTime();
+        if (orderDate > end) return false;
       }
 
       return true;
@@ -81,6 +91,19 @@ export default function Reports() {
     setStartDate("");
     setEndDate("");
     setPage(1);
+  }
+
+  function handleGeneratePdf(order: Order) {
+    try {
+      const client = clients.find((c) => c.id === order.clientId);
+
+      generateOrderPdf(order, client);
+
+      toast.success("PDF gerado.");
+    } catch (error) {
+      console.error("Erro ao gerar PDF:", error);
+      toast.error("Erro ao gerar PDF.");
+    }
   }
 
   if (loading) {
@@ -172,7 +195,11 @@ export default function Reports() {
                     <td>{o.tipo}</td>
                     <td>{o.status}</td>
                     <td>R$ {o.valor}</td>
-                    <td>{new Date(o.createdAt).toLocaleDateString()}</td>
+                    <td>
+                      {o.scheduledFor
+                        ? new Date(o.scheduledFor).toLocaleDateString("pt-BR")
+                        : "-"}
+                    </td>
                     <td>
                       <button
                         className="button"
@@ -191,21 +218,67 @@ export default function Reports() {
 
       {/* PAGINAÇÃO */}
       <div style={{ marginTop: 15, display: "flex", gap: 10 }}>
-        <button onClick={() => setPage(page - 1)}>Anterior</button>
+        <button onClick={() => setPage(Math.max(1, page - 1))}>Anterior</button>
         <span>
           Página {page} de {totalPages}
         </span>
-        <button onClick={() => setPage(page + 1)}>Próxima</button>
+        <button onClick={() => setPage(Math.min(totalPages, page + 1))}>
+          Próxima
+        </button>
+      </div>
+
+      {/* FATURAMENTO POR MÊS */}
+      <div className="card">
+        <h3>Faturamento por mês</h3>
+
+        {revenue.length === 0 ? (
+          <p>Sem dados de faturamento.</p>
+        ) : (
+          revenue.map((r: any) => {
+            const [year, month] = r.mes.split("-");
+            const label = new Date(
+              Number(year),
+              Number(month) - 1,
+              1,
+            ).toLocaleDateString("pt-BR", {
+              month: "long",
+              year: "numeric",
+            });
+            const valor = Number(r.total).toLocaleString("pt-BR", {
+              style: "currency",
+              currency: "BRL",
+            });
+            return (
+              <div
+                key={r.mes}
+                style={{ padding: "6px 0", borderBottom: "1px solid #eee" }}
+              >
+                <span style={{ textTransform: "capitalize" }}>{label}</span>
+                {" → "}
+                <strong>{valor}</strong>
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {/* SERVIÇOS MAIS REALIZADOS */}
+      <div className="card">
+        <h3>Serviços mais realizados</h3>
+
+        {services.length === 0 ? (
+          <p>Sem dados de serviços.</p>
+        ) : (
+          services.map((s: any) => (
+            <div
+              key={s.tipo}
+              style={{ padding: "6px 0", borderBottom: "1px solid #eee" }}
+            >
+              {s.tipo} → <strong>{s.total}</strong>
+            </div>
+          ))
+        )}
       </div>
     </div>
   );
-}
-
-function handleGeneratePdf(order: Order) {
-  try {
-    generateOrderPdf(order);
-    toast.success("PDF gerado.");
-  } catch {
-    toast.error("Erro ao gerar PDF.");
-  }
 }
