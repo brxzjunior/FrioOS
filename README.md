@@ -1,239 +1,283 @@
 # ❄️ FrioOS — Sistema de Ordens de Serviço para Técnicos de Refrigeração
 
-Sistema web full-stack desenvolvido para ajudar técnicos autônomos (MEI) a organizar clientes, ordens de serviço e histórico financeiro, substituindo anotações em papel por uma solução digital simples e profissional.
+> Sistema web full-stack desenvolvido para ajudar técnicos autônomos (MEI) a organizar clientes, ordens de serviço e histórico financeiro — substituindo anotações em papel por uma solução digital simples e profissional.
 
-Projeto criado como PEX (Projeto de Experiência) com foco em impacto real em pequenos negócios.
+Projeto criado como **PEX (Projeto de Extensão)** com foco em impacto real em pequenos negócios.
 
-## 🚀 Problema
+![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat&logo=typescript&logoColor=white)
+![React](https://img.shields.io/badge/React-20232A?style=flat&logo=react&logoColor=61DAFB)
+![Node.js](https://img.shields.io/badge/Node.js-339933?style=flat&logo=node.js&logoColor=white)
+![Express](https://img.shields.io/badge/Express-000000?style=flat&logo=express&logoColor=white)
+![SQLite](https://img.shields.io/badge/SQLite-003B57?style=flat&logo=sqlite&logoColor=white)
+![Vite](https://img.shields.io/badge/Vite-646CFF?style=flat&logo=vite&logoColor=white)
+![MIT License](https://img.shields.io/badge/License-MIT-green?style=flat)
+
+---
+
+## 📌 Índice
+
+- [O Problema](#-o-problema)
+- [A Solução](#-a-solução)
+- [Arquitetura](#-arquitetura-do-projeto)
+- [Tecnologias](#-tecnologias)
+- [Estrutura de Pastas](#-estrutura-de-pastas)
+- [Pré-requisitos](#-pré-requisitos)
+- [Como Rodar](#️-como-rodar-o-projeto)
+- [Endpoints da API](#-endpoints-da-api)
+- [Conceitos Aplicados](#-conceitos-aplicados)
+- [Próximas Melhorias](#-próximas-melhorias)
+- [Contribuição](#-contribuição)
+- [Licença](#-licença)
+
+---
+
+## 🚨 O Problema
 
 Técnicos de refrigeração geralmente:
 
-anotam serviços no papel/WhatsApp
-
-perdem histórico de clientes
-
-esquecem valores recebidos
-
-não têm controle financeiro
-
-não geram comprovantes
+- Anotam serviços no papel ou no WhatsApp
+- Perdem histórico de clientes
+- Esquecem valores recebidos
+- Não têm controle financeiro
+- Não geram comprovantes
 
 Isso gera:
 
-❌ desorganização
+- ❌ Desorganização
+- ❌ Retrabalho
+- ❌ Perda de dinheiro
+- ❌ Pouca credibilidade com clientes
 
-❌ retrabalho
+---
 
-❌ perda de dinheiro
+## ✅ A Solução
 
-❌ pouca credibilidade
+O **FrioOS** centraliza tudo em um único sistema:
 
-## ✅ Solução
+| Funcionalidade | Descrição |
+|---|---|
+| 👤 Cadastro de clientes | Dados completos e histórico de atendimentos |
+| 📋 Ordens de serviço digitais | Abertura, edição e encerramento de OS |
+| 🔄 Controle de status | Acompanhe cada OS em tempo real |
+| 💰 Registro de valores | Controle financeiro por serviço |
+| 📄 Geração de PDF | Comprovantes profissionais para o cliente |
+| 📊 Relatórios mensais | Visão financeira do negócio |
+| 🗄️ Persistência em banco de dados | Histórico permanente e seguro |
 
-O FrioOS centraliza tudo em um único sistema:
+---
 
-`👤 cadastro de clientes`
+## 🧠 Arquitetura do Projeto
 
-`📋 ordens de serviço digitais`
+```
+Frontend (React) ──→ API REST (Express) ──→ Service Layer ──→ SQLite Database
+       ↑                                                              │
+       └──────────────────── Response ────────────────────────────────┘
+```
 
-`🔄 controle de status`
+### 🟢 Frontend — React + Vite + TypeScript
+Interface do usuário responsável por telas, formulários, navegação e consumo da API.
 
-`💰 registro de valores`
+### 🔵 Backend — Node.js + Express + TypeScript
+API REST responsável por regras de negócio, validações, endpoints HTTP e comunicação com o banco.
 
-`📄 geração de PDF`
+### 🟣 Banco de Dados — SQLite
+Persistência local responsável por salvar clientes, ordens de serviço e histórico permanente.
 
-`📊 relatórios mensais`
-
-`🟣 persistência em banco de dados`
-
-# 🧠 Arquitetura do Projeto
-## 🟢 Frontend (React)
-
-Interface do usuário
-
-React + Vite + TypeScript
-
-
-Responsável por:
-
-telas
-
-formulários
-
-navegação
-
-consumo da API
-
-## 🔵 Backend (Node + Express)
-
-API REST
-
-Responsável por:
-
-regras de negócio
-
-validações
-
-endpoints HTTP
-
-comunicação com banco
-
-## 🟣 Banco de Dados (SQLite)
-
-Persistência local
-
-Responsável por:
-
-salvar clientes
-
-salvar ordens de serviço
-
-histórico permanente
-
-## 🔄 Fluxo da aplicação
-Frontend → API → Service → Database → Response → Frontend
+---
 
 ## 🛠️ Tecnologias
-Frontend
 
-React
+**Frontend**
+- [React](https://reactjs.org/)
+- [Vite](https://vitejs.dev/)
+- [TypeScript](https://www.typescriptlang.org/)
+- [React Router](https://reactrouter.com/)
+- [Axios](https://axios-http.com/)
 
-Vite
+**Backend**
+- [Node.js](https://nodejs.org/)
+- [Express](https://expressjs.com/)
+- [TypeScript](https://www.typescriptlang.org/)
+- [SQLite3](https://www.sqlite.org/)
 
-TypeScript
-
-React Router
-
-Axios
-
-Backend
-
-Node.js
-
-Express
-
-TypeScript
-
-SQLite
+---
 
 ## 📂 Estrutura de Pastas
-🟢 Frontend
-src/
- ├─ pages/
- ├─ components/
- ├─ routes/
- ├─ services/
- ├─ types/
- └─ App.tsx
 
-🔵 Backend
-src/
- ├─ server.ts
- ├─ routes/
- ├─ controllers/
- ├─ services/
- ├─ models/
- └─ database/
-      ├─ connection.ts
-      ├─ schema.ts
-      └─ db.ts
+```
+frioos/
+├── frioos-frontend/
+│   └── src/
+│       ├── pages/          # Telas da aplicação
+│       ├── components/     # Componentes reutilizáveis
+│       ├── routes/         # Configuração de rotas
+│       ├── services/       # Comunicação com a API
+│       ├── types/          # Tipagens TypeScript
+│       └── App.tsx
+│
+└── frioos-backend/
+    └── src/
+        ├── server.ts       # Ponto de entrada
+        ├── routes/         # Definição das rotas HTTP
+        ├── controllers/    # Lógica de requisição/resposta
+        ├── services/       # Regras de negócio
+        ├── models/         # Modelos de dados
+        └── database/
+            ├── connection.ts
+            ├── schema.ts
+            └── db.ts
+```
 
-# ▶️ Como rodar o projeto
-## 🟢 Frontend
+---
+
+## ⚙️ Pré-requisitos
+
+Antes de começar, você precisa ter instalado:
+
+- [Node.js](https://nodejs.org/) — versão 18 ou superior
+- [npm](https://www.npmjs.com/) — vem junto com o Node.js
+- [Git](https://git-scm.com/)
+
+---
+
+## ▶️ Como Rodar o Projeto
+
+### 1. Clone o repositório
+
+```bash
+git clone https://github.com/brxzjunior/frioos.git
+cd frioos
+```
+
+### 2. 🟢 Frontend
+
+```bash
+cd frioos-frontend
 npm install
 npm run dev
+```
 
+Acesse: [http://localhost:5173](http://localhost:5173)
 
-Acesse:
+### 3. 🔵 Backend
 
-`http://localhost:5173`
+Em outro terminal:
 
-## 🔵 Backend
+```bash
 cd frioos-backend
 npm install
 npm run dev
+```
 
+Acesse: [http://localhost:3333](http://localhost:3333)
 
-Acesse:
+---
 
-`http://localhost:3333`
+## 📡 Endpoints da API
 
-##📡 Endpoints da API
-Listar clientes
-GET /api/clients
+Base URL: `http://localhost:3333/api`
 
-Criar cliente
-POST /api/clients
+### 👤 Clientes
 
+| Método | Rota | Descrição |
+|--------|------|-----------|
+| `GET` | `/clients` | Lista todos os clientes |
+| `GET` | `/clients/:id` | Busca um cliente por ID |
+| `POST` | `/clients` | Cria um novo cliente |
+| `PUT` | `/clients/:id` | Atualiza dados de um cliente |
+| `DELETE` | `/clients/:id` | Remove um cliente |
 
-Body:
+**Exemplo — Criar cliente** `POST /api/clients`
 
-``` json
+```json
 {
-  "nome": "João",
-  "telefone": "99999-9999",
-  "endereco": "Rua A"
+  "nome": "João Silva",
+  "telefone": "92 99999-9999",
+  "endereco": "Rua A, 123 — Manaus/AM"
 }
 ```
 
-## 🧩 Conceitos aplicados (aprendizado)
+### 📋 Ordens de Serviço
+
+| Método | Rota | Descrição |
+|--------|------|-----------|
+| `GET` | `/orders` | Lista todas as ordens de serviço |
+| `GET` | `/orders/:id` | Busca uma OS por ID |
+| `POST` | `/orders` | Cria uma nova OS |
+| `PUT` | `/orders/:id` | Atualiza uma OS |
+| `PATCH` | `/orders/:id/status` | Atualiza o status de uma OS |
+| `DELETE` | `/orders/:id` | Remove uma OS |
+
+**Exemplo — Criar OS** `POST /api/orders`
+
+```json
+{
+  "clienteId": 1,
+  "descricao": "Manutenção preventiva ar-condicionado split",
+  "valor": 150.00,
+  "status": "aberta"
+}
+```
+
+---
+
+## 🧩 Conceitos Aplicados
 
 Este projeto foi construído para praticar:
 
-arquitetura MVC
+- Arquitetura **MVC** (Model-View-Controller)
+- Separação de responsabilidades
+- **CRUD** completo
+- **REST API** com Express
+- Integração Front-end ⇄ Back-end
+- Banco de dados relacional com **SQLite**
+- **TypeScript** full-stack
 
-separação de responsabilidades
+---
 
-CRUD completo
+## 💡 Impacto Real
 
-REST API
+Benefícios diretos para o técnico:
 
-integração Front ⇄ Back
+- ✅ Organização profissional
+- ✅ Histórico completo de clientes
+- ✅ Controle financeiro
+- ✅ Menos erros e retrabalho
+- ✅ Mais credibilidade com clientes
+- ✅ Economia de tempo
 
-SQLite
+---
 
-TypeScript full-stack
+## 📌 Próximas Melhorias
 
-## 💡 Impacto real
+- [ ] Autenticação e login
+- [ ] Geração de PDF por OS
+- [ ] Dashboard com gráficos financeiros
+- [ ] Controle de estoque de peças
+- [ ] Versão mobile (PWA)
+- [ ] Deploy em nuvem
 
-Benefícios para o técnico:
-
-organização profissional
-
-histórico de clientes
-
-controle financeiro
-
-menos erros
-
-mais credibilidade
-
-economia de tempo
-
-## 📌 Próximas melhorias
-
-autenticação/login
-
-geração de PDF
-
-dashboard com gráficos
-
-controle de estoque
-
-versão mobile
-
-deploy em nuvem
+---
 
 ## 🤝 Contribuição
 
-Sinta-se livre para abrir:
+Contribuições são bem-vindas! Sinta-se à vontade para:
 
-issues
+1. Fazer um fork do projeto
+2. Criar uma branch: `git checkout -b minha-feature`
+3. Commitar suas mudanças: `git commit -m 'feat: minha nova feature'`
+4. Abrir um Pull Request
 
-sugestões
+Ou simplesmente abra uma [issue](https://github.com/brxzjunior/frioos/issues) com sugestões e melhorias.
 
-melhorias
+---
 
 ## 📄 Licença
 
-`MIT`
+Distribuído sob a licença **MIT**. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
+
+---
+
+<p align="center">
+  Feito com ❤️ por <a href="https://github.com/brxzjunior">Braz Junior</a>
+</p>
