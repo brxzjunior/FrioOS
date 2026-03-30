@@ -2,7 +2,7 @@
 
 > Sistema web full-stack desenvolvido para ajudar técnicos autônomos (MEI) a organizar clientes, ordens de serviço e histórico financeiro — substituindo anotações em papel por uma solução digital simples e profissional.
 
-Projeto criado como **PEX (Projeto de Experiência)** com foco em impacto real em pequenos negócios.
+Projeto criado como **PEX (Projeto de Extensão)** com foco em impacto real em pequenos negócios.
 
 ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat&logo=typescript&logoColor=white)
 ![React](https://img.shields.io/badge/React-20232A?style=flat&logo=react&logoColor=61DAFB)
