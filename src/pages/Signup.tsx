@@ -6,6 +6,7 @@ import toast from "react-hot-toast";
 
 export default function Signup() {
   const navigate = useNavigate();
+
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -15,7 +16,7 @@ export default function Signup() {
     e.preventDefault();
 
     if (!name || !email || !password) {
-      toast.error("Preencha nome, email e senha.");
+      toast.error("Preencha todos os campos.");
       return;
     }
 
@@ -24,16 +25,16 @@ export default function Signup() {
       return;
     }
 
-    setLoading(true);
     try {
+      setLoading(true);
+
       const data = await signup({ name, email, password });
       setToken(data.token);
-      toast.success("Conta criada com sucesso.");
-      navigate("/dashboard", { replace: true });
+
+      toast.success("Conta criada!");
+      navigate("/dashboard");
     } catch (err: any) {
-      console.error("ERRO SIGNUP:", err);
-      const msg =
-        err?.response?.data?.message ?? "Erro ao cadastrar. Tente novamente.";
+      const msg = err?.response?.data?.message ?? "Erro ao criar conta.";
       toast.error(msg);
     } finally {
       setLoading(false);
@@ -41,37 +42,47 @@ export default function Signup() {
   }
 
   return (
-    <div style={{ padding: 20, maxWidth: 420 }}>
-      <h2>Criar conta</h2>
+    <div className="main" style={{ display: "flex", justifyContent: "center" }}>
+      <div className="card" style={{ width: 400 }}>
+        <h2>Criar conta</h2>
 
-      <form onSubmit={handleSignup} style={{ display: "grid", gap: 10 }}>
-        <input
-          placeholder="Nome"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
+        <form onSubmit={handleSignup} style={{ display: "grid", gap: 10 }}>
+          <input
+            className="input"
+            placeholder="Nome"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
 
-        <input
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
+          <input
+            className="input"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
 
-        <input
-          placeholder="Senha (mín. 6)"
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
+          <input
+            className="input"
+            type="password"
+            placeholder="Senha (mín. 6)"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
 
-        <button type="submit" disabled={loading}>
-          {loading ? "Cadastrando..." : "Cadastrar"}
-        </button>
+          <button className="button" disabled={loading}>
+            {loading ? "Cadastrando..." : "Cadastrar"}
+          </button>
 
-        <button type="button" onClick={() => navigate("/login")}>
-          Já tenho conta
-        </button>
-      </form>
+          <button
+            type="button"
+            className="button"
+            style={{ background: "#5e18e0", color: "#ffffff" }}
+            onClick={() => navigate("/login")}
+          >
+            Já tenho conta
+          </button>
+        </form>
+      </div>
     </div>
   );
 }

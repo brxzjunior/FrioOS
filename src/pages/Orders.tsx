@@ -22,7 +22,7 @@ export default function Orders() {
   const [editDescricao, setEditDescricao] = useState("");
   const [editValor, setEditValor] = useState("");
   const [editObs, setEditObs] = useState("");
-  const [editScheduledFor, setEditScheduledFor] = useState(""); // yyyy-mm-dd
+  const [editScheduledFor, setEditScheduledFor] = useState("");
   const [savingEdit, setSavingEdit] = useState(false);
 
   const clientMap = useMemo(() => {
@@ -41,9 +41,8 @@ export default function Orders() {
 
       setOrders(Array.isArray(ordersData) ? ordersData : []);
       setClients(clientsData);
-    } catch (err) {
-      console.error("Erro ao carregar ordens/clientes:", err);
-      toast.error("Erro ao carregar ordens de serviço.");
+    } catch {
+      toast.error("Erro ao carregar ordens.");
     } finally {
       setLoading(false);
     }
@@ -61,24 +60,20 @@ export default function Orders() {
         prev.map((o) => (o.id === id ? { ...o, status } : o)),
       );
       toast.success("Status atualizado.");
-    } catch (err) {
-      console.error("Erro ao atualizar status:", err);
-      toast.error("Erro ao atualizar status.");
     } finally {
       setUpdatingId(null);
     }
   }
 
   async function handleDelete(id: string) {
-    if (!confirm("Tem certeza que deseja excluir esta OS?")) return;
+    if (!confirm("Excluir esta OS?")) return;
 
     try {
       await deleteOrder(id);
       setOrders((prev) => prev.filter((o) => o.id !== id));
       toast.success("OS excluída.");
-    } catch (err) {
-      console.error("Erro ao excluir OS:", err);
-      toast.error("Erro ao excluir OS.");
+    } catch {
+      toast.error("Erro ao excluir.");
     }
   }
 
@@ -90,64 +85,23 @@ export default function Orders() {
   }
 
   function handleGeneratePdf(order: Order) {
-    try {
-      const client = clientMap.get(order.clientId);
-      generateOrderPdf(order, client);
-      toast.success("PDF gerado.");
-    } catch (err) {
-      console.error("Erro ao gerar PDF:", err);
-      toast.error("Erro ao gerar PDF.");
-    }
+    const client = clientMap.get(order.clientId);
+    generateOrderPdf(order, client);
+    toast.success("PDF gerado.");
   }
-
-  function startEdit(order: Order) {
-    setEditingOrder(order);
-    setEditDescricao(order.descricao);
-    setEditValor(String(order.valor).replace(".", ","));
-    setEditObs((order as any).obs ?? "");
-    setEditScheduledFor(
-      (order as any).scheduledFor
-        ? (order as any).scheduledFor.slice(0, 10)
-        : "",
-    );
-  }
-
-  async function handleSaveEdit() {
-    if (!editingOrder) return;
-
-    try {
-      setSavingEdit(true);
-      const updated = await updateOrder(editingOrder.id, {
-        descricao: editDescricao.trim(),
-        valor: Number(editValor.replace(",", ".")),
-        obs: editObs.trim() || null,
-        scheduledFor: editScheduledFor || null,
-      });
-
-      setOrders((prev) => prev.map((o) => (o.id === updated.id ? updated : o)));
-
-      toast.success("OS atualizada.");
-      setEditingOrder(null);
-    } catch (err) {
-      console.error("Erro ao atualizar OS:", err);
-      toast.error("Erro ao atualizar OS.");
-    } finally {
-      setSavingEdit(false);
-    }
-  }
-
   function openGoogleReminder(order: Order) {
     const client = clientMap.get(order.clientId);
 
     const title = encodeURIComponent(
       `Serviço: ${order.tipo} - ${client?.nome ?? ""}`,
     );
+
     const details = encodeURIComponent(
       `${order.descricao}\n\nObs: ${(order as any).obs ?? "-"}`,
     );
 
     const baseDate = (order as any).scheduledFor
-      ? new Date((order as any).scheduledFor as string)
+      ? new Date((order as any).scheduledFor)
       : new Date();
 
     const start = new Date(
@@ -157,6 +111,7 @@ export default function Orders() {
       8,
       0,
     );
+
     const end = new Date(
       baseDate.getFullYear(),
       baseDate.getMonth(),
@@ -175,153 +130,128 @@ export default function Orders() {
     window.open(url, "_blank");
   }
 
-  // 🔹 aplica filtro de status aqui, fora do JSX
+  function startEdit(order: Order) {
+    setEditingOrder(order);
+    setEditDescricao(order.descricao);
+    setEditValor(String(order.valor));
+    setEditObs((order as any).obs ?? "");
+    setEditScheduledFor(
+      (order as any).scheduledFor
+        ? (order as any).scheduledFor.slice(0, 10)
+        : "",
+    );
+  }
+
+  async function handleSaveEdit() {
+    if (!editingOrder) return;
+
+    try {
+      setSavingEdit(true);
+
+      const updated = await updateOrder(editingOrder.id, {
+        descricao: editDescricao,
+        valor: Number(editValor),
+        obs: editObs,
+        scheduledFor: editScheduledFor || null,
+      });
+
+      setOrders((prev) => prev.map((o) => (o.id === updated.id ? updated : o)));
+
+      toast.success("Atualizado.");
+      setEditingOrder(null);
+    } finally {
+      setSavingEdit(false);
+    }
+  }
+
   const visibleOrders =
     statusFilter === "ALL"
       ? orders
       : orders.filter((o) => o.status === statusFilter);
 
   return (
-    <div style={{ padding: 20 }}>
-      <h2>Ordens de Serviço</h2>
+    <div className="main">
+      <h1>Ordens de Serviço</h1>
 
-      <div style={{ marginBottom: 12 }}>
-        <label>
-          Status:{" "}
-          <select
-            value={statusFilter}
-            onChange={(e) =>
-              setStatusFilter(e.target.value as OrderStatus | "ALL")
-            }
-          >
-            <option value="ALL">Todos</option>
-            <option value="ABERTA">Abertas</option>
-            <option value="ANDAMENTO">Em andamento</option>
-            <option value="FINALIZADA">Finalizadas</option>
-          </select>
-        </label>
+      {/* FILTRO */}
+      <div className="card">
+        <label>Status</label>
+        <select
+          className="input"
+          value={statusFilter}
+          onChange={(e) =>
+            setStatusFilter(e.target.value as OrderStatus | "ALL")
+          }
+        >
+          <option value="ALL">Todos</option>
+          <option value="ABERTA">Abertas</option>
+          <option value="ANDAMENTO">Andamento</option>
+          <option value="FINALIZADA">Finalizadas</option>
+        </select>
       </div>
 
+      {/* LISTA */}
       {loading ? (
         <p>Carregando...</p>
       ) : visibleOrders.length === 0 ? (
-        <p>Nenhuma OS cadastrada ainda.</p>
+        <p>Nenhuma OS encontrada.</p>
       ) : (
         visibleOrders.map((o) => {
           const client = clientMap.get(o.clientId);
 
           return (
-            <div
-              key={o.id}
-              style={{
-                border: "1px solid #ddd",
-                padding: 12,
-                marginBottom: 8,
-                borderRadius: 8,
-                display: "grid",
-                gap: 6,
-              }}
-            >
-              <div>
-                <strong>{o.tipo}</strong>{" "}
-                <span style={{ opacity: 0.7 }}>({o.status})</span>
-              </div>
+            <div key={o.id} className="card">
+              <h3>
+                {o.tipo} — {o.status}
+              </h3>
 
-              <div>
-                <strong>Cliente:</strong>{" "}
-                {client?.nome ?? "Cliente não encontrado"}
-              </div>
-
-              <div>
+              <p>
+                <strong>Cliente:</strong> {client?.nome}
+              </p>
+              <p>
                 <strong>Descrição:</strong> {o.descricao}
-              </div>
+              </p>
 
-              {"obs" in o && (o as any).obs ? (
-                <div>
-                  <strong>Obs:</strong> {(o as any).obs}
-                </div>
-              ) : null}
-
-              <div>
-                <strong>Data do serviço:</strong>{" "}
+              <p>
+                <strong>Data:</strong>{" "}
                 {(o as any).scheduledFor
-                  ? new Date((o as any).scheduledFor).toLocaleDateString(
-                      "pt-BR",
-                    )
-                  : "Não agendada"}
-              </div>
+                  ? new Date((o as any).scheduledFor).toLocaleDateString()
+                  : "Não definida"}
+              </p>
 
-              <div>
-                <strong>Valor:</strong> {formatBRL(Number(o.valor))}
-              </div>
+              <p>
+                <strong>Valor:</strong> {formatBRL(o.valor)}
+              </p>
 
-              <div
-                style={{
-                  display: "flex",
-                  flexWrap: "wrap",
-                  gap: 8,
-                  alignItems: "center",
-                }}
-              >
-                <label>
-                  Status:{" "}
-                  <select
-                    value={o.status}
-                    onChange={(e) =>
-                      handleStatusChange(o.id, e.target.value as OrderStatus)
-                    }
-                    disabled={updatingId === o.id}
-                  >
-                    <option value="ABERTA">ABERTA</option>
-                    <option value="ANDAMENTO">ANDAMENTO</option>
-                    <option value="FINALIZADA">FINALIZADA</option>
-                  </select>
-                </label>
-
-                <button type="button" onClick={() => handleGeneratePdf(o)}>
-                  Gerar PDF
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => startEdit(o)}
-                  style={{
-                    padding: "0.25rem 0.5rem",
-                    borderRadius: "0.375rem",
-                    border: "1px solid #d1d5db",
-                    backgroundColor: "#f3f4f6",
-                    cursor: "pointer",
-                  }}
+              {/* AÇÕES */}
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <select
+                  className="input"
+                  value={o.status}
+                  onChange={(e) =>
+                    handleStatusChange(o.id, e.target.value as OrderStatus)
+                  }
+                  disabled={updatingId === o.id}
                 >
+                  <option value="ABERTA">ABERTA</option>
+                  <option value="ANDAMENTO">ANDAMENTO</option>
+                  <option value="FINALIZADA">FINALIZADA</option>
+                </select>
+
+                <button className="button" onClick={() => startEdit(o)}>
                   Editar
                 </button>
 
-                <button
-                  type="button"
-                  onClick={() => handleDelete(o.id)}
-                  style={{
-                    padding: "0.25rem 0.5rem",
-                    borderRadius: "0.375rem",
-                    border: "1px solid #ef4444",
-                    backgroundColor: "#fee2e2",
-                    color: "#b91c1c",
-                    cursor: "pointer",
-                  }}
-                >
-                  Excluir
+                <button className="button" onClick={() => handleGeneratePdf(o)}>
+                  PDF
                 </button>
 
+                <button className="button" onClick={() => handleDelete(o.id)}>
+                  Excluir
+                </button>
                 <button
-                  type="button"
+                  className="button"
                   onClick={() => openGoogleReminder(o)}
-                  style={{
-                    padding: "0.25rem 0.5rem",
-                    borderRadius: "0.375rem",
-                    border: "1px solid #3b82f6",
-                    backgroundColor: "#eff6ff",
-                    color: "#1d4ed8",
-                    cursor: "pointer",
-                  }}
                 >
                   Lembrete Google
                 </button>
@@ -331,88 +261,43 @@ export default function Orders() {
         })
       )}
 
+      {/* MODAL */}
       {editingOrder && (
         <div
           style={{
             position: "fixed",
             inset: 0,
-            backgroundColor: "rgba(0,0,0,0.3)",
+            background: "rgba(0,0,0,0.4)",
             display: "flex",
-            alignItems: "center",
             justifyContent: "center",
-            zIndex: 50,
+            alignItems: "center",
           }}
         >
-          <div
-            style={{
-              backgroundColor: "#fff",
-              padding: 16,
-              borderRadius: 8,
-              maxWidth: 480,
-              width: "100%",
-              display: "grid",
-              gap: 8,
-            }}
-          >
+          <div className="card" style={{ width: 400 }}>
             <h3>Editar OS</h3>
 
-            <label>
-              Descrição
-              <textarea
-                value={editDescricao}
-                onChange={(e) => setEditDescricao(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    handleSaveEdit();
-                  }
-                }}
-              />
-            </label>
+            <textarea
+              className="input"
+              value={editDescricao}
+              onChange={(e) => setEditDescricao(e.target.value)}
+            />
 
-            <label>
-              Data do serviço
-              <input
-                type="date"
-                value={editScheduledFor}
-                onChange={(e) => setEditScheduledFor(e.target.value)}
-              />
-            </label>
+            <input
+              type="date"
+              className="input"
+              value={editScheduledFor}
+              onChange={(e) => setEditScheduledFor(e.target.value)}
+            />
 
-            <label>
-              Observações
-              <textarea
-                value={editObs}
-                onChange={(e) => setEditObs(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    handleSaveEdit();
-                  }
-                }}
-              />
-            </label>
+            <textarea
+              className="input"
+              value={editObs}
+              onChange={(e) => setEditObs(e.target.value)}
+            />
 
-            <div
-              style={{
-                display: "flex",
-                gap: 8,
-                justifyContent: "flex-end",
-                marginTop: 8,
-              }}
-            >
-              <button
-                type="button"
-                onClick={() => setEditingOrder(null)}
-                disabled={savingEdit}
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                onClick={handleSaveEdit}
-                disabled={savingEdit}
-              >
+            <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
+              <button onClick={() => setEditingOrder(null)}>Cancelar</button>
+              <button className="button" onClick={handleSaveEdit}>
                 {savingEdit ? "Salvando..." : "Salvar"}
               </button>
             </div>

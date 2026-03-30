@@ -18,8 +18,7 @@ export default function Clients() {
     try {
       const data = await getClients();
       setClients(data);
-    } catch (err) {
-      console.error("Erro ao carregar clientes:", err);
+    } catch {
       toast.error("Erro ao carregar clientes.");
     }
   }
@@ -30,25 +29,28 @@ export default function Clients() {
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
+
     if (!nome.trim()) {
       toast.error("Nome é obrigatório.");
       return;
     }
 
-    setLoading(true);
     try {
+      setLoading(true);
+
       await createClient({
-        nome: nome.trim(),
-        telefone: telefone.trim(),
-        endereco: endereco.trim(),
+        nome,
+        telefone,
+        endereco,
       });
+
       setNome("");
       setTelefone("");
       setEndereco("");
-      toast.success("Cliente adicionado.");
-      await loadClients();
-    } catch (err) {
-      console.error("Erro ao criar cliente:", err);
+
+      toast.success("Cliente criado.");
+      loadClients();
+    } catch {
       toast.error("Erro ao criar cliente.");
     } finally {
       setLoading(false);
@@ -56,65 +58,89 @@ export default function Clients() {
   }
 
   async function handleDelete(id: string) {
-    if (!confirm("Tem certeza que deseja excluir este cliente?")) return;
+    if (!confirm("Excluir cliente?")) return;
 
     try {
       await deleteClient(id);
-      toast.success("Cliente excluído.");
-      await loadClients();
-    } catch (err) {
-      console.error("Erro ao excluir cliente:", err);
-      toast.error("Erro ao excluir cliente.");
+      toast.success("Cliente removido.");
+      loadClients();
+    } catch {
+      toast.error("Erro ao excluir.");
     }
   }
 
   return (
-    <div style={{ padding: 20, maxWidth: 600 }}>
-      <h2>Clientes</h2>
+    <div className="main">
+      <h1>Clientes</h1>
+      <p style={{ color: "#666", marginBottom: 20 }}>Gerencie seus clientes</p>
 
-      <form
-        onSubmit={handleCreate}
-        style={{ display: "grid", gap: 8, marginBottom: 16 }}
-      >
-        <input
-          placeholder="Nome do cliente"
-          value={nome}
-          onChange={(e) => setNome(e.target.value)}
-        />
-        <input
-          placeholder="Telefone"
-          value={telefone}
-          onChange={(e) => setTelefone(e.target.value)}
-        />
-        <input
-          placeholder="Endereço"
-          value={endereco}
-          onChange={(e) => setEndereco(e.target.value)}
-        />
-        <button type="submit" disabled={loading}>
-          {loading ? "Salvando..." : "Adicionar"}
-        </button>
-      </form>
+      {/* FORM */}
+      <div className="card">
+        <h3>Novo cliente</h3>
 
-      <ul style={{ marginTop: 20 }}>
-        {clients.map((client) => (
-          <li
-            key={client.id}
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              padding: "4px 0",
-            }}
-          >
-            <span>
-              <strong>{client.nome}</strong>{" "}
-              {client.telefone && <>- {client.telefone}</>}
-            </span>
-            <button onClick={() => handleDelete(client.id)}>Excluir</button>
-          </li>
-        ))}
-      </ul>
+        <form onSubmit={handleCreate} style={{ display: "grid", gap: 10 }}>
+          <input
+            className="input"
+            placeholder="Nome"
+            value={nome}
+            onChange={(e) => setNome(e.target.value)}
+          />
+
+          <input
+            className="input"
+            placeholder="Telefone"
+            value={telefone}
+            onChange={(e) => setTelefone(e.target.value)}
+          />
+
+          <input
+            className="input"
+            placeholder="Endereço"
+            value={endereco}
+            onChange={(e) => setEndereco(e.target.value)}
+          />
+
+          <button className="button" disabled={loading}>
+            {loading ? "Salvando..." : "Adicionar cliente"}
+          </button>
+        </form>
+      </div>
+
+      {/* LISTA */}
+      <div className="card">
+        <h3>Lista de clientes</h3>
+
+        {clients.length === 0 ? (
+          <p>Nenhum cliente cadastrado.</p>
+        ) : (
+          clients.map((client) => (
+            <div
+              key={client.id}
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                padding: "8px 0",
+                borderBottom: "1px solid #eee",
+              }}
+            >
+              <div>
+                <strong>{client.nome}</strong>
+                <div style={{ fontSize: 13, color: "#666" }}>
+                  {client.telefone} {client.endereco && `• ${client.endereco}`}
+                </div>
+              </div>
+
+              <button
+                className="button"
+                onClick={() => handleDelete(client.id)}
+              >
+                Excluir
+              </button>
+            </div>
+          ))
+        )}
+      </div>
     </div>
   );
 }

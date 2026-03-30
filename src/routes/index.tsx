@@ -11,6 +11,7 @@ import Orders from "../pages/Orders";
 import NewOrder from "../pages/NewOrder";
 import Reports from "../pages/Reports";
 import LoginSuccess from "../pages/LoginSuccess";
+import GoogleCallback from "../pages/GoogleCallback"; // ✅ IMPORTANTE
 
 export default function AppRoutes() {
   return (
@@ -20,7 +21,9 @@ export default function AppRoutes() {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
 
-        {/* 🔥 ESSA LINHA É A CORREÇÃO */}
+        {/* Google callback NÃO pode ser protegido */}
+        <Route path="/auth/google/callback" element={<GoogleCallback />} />
+
         <Route path="/login/success" element={<LoginSuccess />} />
 
         {/* privadas */}
@@ -35,7 +38,7 @@ export default function AppRoutes() {
           </Route>
         </Route>
 
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </BrowserRouter>
   );

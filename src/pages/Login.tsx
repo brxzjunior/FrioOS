@@ -6,75 +6,79 @@ import toast from "react-hot-toast";
 
 export default function Login() {
   const navigate = useNavigate();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
-  async function handleLogin(e: React.FormEvent<HTMLFormElement>) {
+  async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
 
     if (!email || !password) {
-      toast.error("Preencha email e senha.");
+      toast.error("Preencha todos os campos.");
       return;
     }
 
-    setLoading(true);
-
     try {
-      const data = await login({ email, password });
+      setLoading(true);
 
+      const data = await login({ email, password });
       setToken(data.token);
 
-      toast.success("Login realizado com sucesso.");
-      navigate("/dashboard", { replace: true });
-    } catch (err: any) {
-      const msg =
-        err?.response?.data?.message ?? "Erro ao logar. Verifique os dados.";
-      toast.error(msg);
+      toast.success("Login realizado!");
+      navigate("/dashboard");
+    } catch {
+      toast.error("Erro ao fazer login.");
     } finally {
       setLoading(false);
     }
   }
 
-  function handleGoogleLogin(e: React.MouseEvent<HTMLButtonElement>) {
-    e.preventDefault(); // 🔥 garante que NÃO vai submeter o form
-
-    console.log("👉 Redirecionando para Google..."); // debug opcional
-
+  function handleGoogleLogin() {
+    // 🔥 REDIRECIONA PRO BACKEND
     window.location.href = "http://localhost:3333/auth/google";
   }
 
   return (
-    <div style={{ padding: 20, maxWidth: 420 }}>
-      <h2>Login</h2>
+    <div className="main" style={{ display: "flex", justifyContent: "center" }}>
+      <div className="card" style={{ width: 400 }}>
+        <h2>Login</h2>
 
-      <form onSubmit={handleLogin} style={{ display: "grid", gap: 10 }}>
-        <input
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
+        <form onSubmit={handleLogin} style={{ display: "grid", gap: 10 }}>
+          <input
+            className="input"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
 
-        <input
-          placeholder="Senha"
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
+          <input
+            className="input"
+            type="password"
+            placeholder="Senha"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
 
-        <button type="submit" disabled={loading}>
-          {loading ? "Entrando..." : "Entrar"}
-        </button>
+          <button className="button" disabled={loading}>
+            {loading ? "Entrando..." : "Entrar"}
+          </button>
 
-        <button type="button" onClick={() => navigate("/signup")}>
-          Criar conta
-        </button>
+          {/* 🔥 GOOGLE */}
+          <button type="button" className="button" onClick={handleGoogleLogin}>
+            Entrar com Google
+          </button>
 
-        {/* 🔥 GOOGLE LOGIN */}
-        <button type="button" onClick={handleGoogleLogin}>
-          Entrar com Google
-        </button>
-      </form>
+          <button
+            type="button"
+            className="button"
+            style={{ background: "#5e18e0", color: "#fdfbfb" }}
+            onClick={() => navigate("/signup")}
+          >
+            Criar conta
+          </button>
+        </form>
+      </div>
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import { api } from "./api";
 
 export type OrderStatus = "ABERTA" | "ANDAMENTO" | "FINALIZADA";
-export type OrderTipo = "INSTALACAO" | "MANUTENCAO" | "CONSERTO";
+export type OrderTipo = "INSTALACAO" | "MANUTENCAO" | "LIMPEZA" | "RETIRADA";
 
 export type Order = {
   id: string;

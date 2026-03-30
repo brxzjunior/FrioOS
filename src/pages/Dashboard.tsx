@@ -27,7 +27,6 @@ export default function Dashboard() {
         setRevenue(revenueData);
         setServices(servicesData);
       } catch (err) {
-        console.error(err);
         setError("Erro ao carregar estatísticas.");
       } finally {
         setLoading(false);
@@ -38,69 +37,48 @@ export default function Dashboard() {
   }, []);
 
   if (loading) {
-    return (
-      <div style={{ padding: "1.5rem" }}>
-        <h2>Dashboard FrioOS</h2>
-        <p>Carregando dashboard...</p>
-      </div>
-    );
+    return <div className="main">Carregando dashboard...</div>;
   }
 
   if (error) {
-    return (
-      <div style={{ padding: "1.5rem" }}>
-        <h2>Dashboard FrioOS</h2>
-        <p style={{ color: "red" }}>{error}</p>
-      </div>
-    );
+    return <div className="main">{error}</div>;
   }
 
   if (!stats) {
-    return (
-      <div style={{ padding: "1.5rem" }}>
-        <h2>Dashboard FrioOS</h2>
-        <p>Sem dados para exibir.</p>
-      </div>
-    );
+    return <div className="main">Sem dados.</div>;
   }
 
   return (
-    <div style={{ padding: "1.5rem" }}>
-      <h2 style={{ marginBottom: "1rem" }}>Dashboard FrioOS</h2>
+    <div className="main">
+      <h1 style={{ marginBottom: 5 }}>Dashboard</h1>
+      <p style={{ color: "#666", marginBottom: 20 }}>Visão geral do sistema</p>
 
-      {/* Cards de estatísticas */}
+      {/* STATS */}
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
-          gap: "1rem",
-          marginBottom: "1.5rem",
+          gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+          gap: 15,
+          marginBottom: 20,
         }}
       >
-        <Card title="Total de ordens" value={stats.total} />
-        <Card title="Abertas" value={stats.abertas} />
-        <Card title="Em andamento" value={stats.andamento} />
-        <Card title="Finalizadas" value={stats.finalizadas} />
+        <StatCard title="Total" value={stats.total} />
+        <StatCard title="Abertas" value={stats.abertas} />
+        <StatCard title="Andamento" value={stats.andamento} />
+        <StatCard title="Finalizadas" value={stats.finalizadas} />
       </div>
 
+      {/* GRÁFICOS SIMPLES */}
       <div
         style={{
           display: "grid",
           gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
-          gap: "1rem",
-          marginBottom: "1.5rem",
+          gap: 15,
+          marginBottom: 20,
         }}
       >
-        {/* 💰 FATURAMENTO */}
-        <div
-          style={{
-            border: "1px solid #e5e7eb",
-            borderRadius: "0.5rem",
-            padding: "1rem",
-            backgroundColor: "#fff",
-          }}
-        >
-          <h3 style={{ marginBottom: "0.5rem" }}>Faturamento por mês</h3>
+        <div className="card">
+          <h3>Faturamento por mês</h3>
 
           {revenue.length === 0 ? (
             <p>Sem dados</p>
@@ -111,112 +89,72 @@ export default function Dashboard() {
                   month: "long",
                   year: "numeric",
                 })}{" "}
-                → R$ {r.total}
+                → <strong>R$ {r.total}</strong>
               </div>
             ))
           )}
         </div>
 
-        {/* 🔧 SERVIÇOS */}
-        <div
-          style={{
-            border: "1px solid #e5e7eb",
-            borderRadius: "0.5rem",
-            padding: "1rem",
-            backgroundColor: "#fff",
-          }}
-        >
-          <h3 style={{ marginBottom: "0.5rem" }}>Serviços mais realizados</h3>
+        <div className="card">
+          <h3>Serviços mais realizados</h3>
 
           {services.length === 0 ? (
             <p>Sem dados</p>
           ) : (
             services.map((s: any) => (
               <div key={s.tipo}>
-                {s.tipo} → {s.total}
+                {s.tipo} → <strong>{s.total}</strong>
               </div>
             ))
           )}
         </div>
       </div>
 
-      {/* Hub de navegação */}
+      {/* NAVEGAÇÃO */}
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-          gap: "1rem",
+          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+          gap: 15,
         }}
       >
-        <NavButton
-          to="/orders"
-          label="Ver ordens"
-          description="Listar, editar, concluir e gerar PDF das OS."
-        />
-        <NavButton
-          to="/new-order"
-          label="Nova OS"
-          description="Cadastrar uma nova ordem rapidamente."
-        />
-        <NavButton
-          to="/clients"
-          label="Clientes"
-          description="Ver e cadastrar clientes."
-        />
-        <NavButton
-          to="/reports"
-          label="Relatórios"
-          description="Filtrar ordens e gerar relatórios em PDF."
-        />
+        <NavCard to="/orders" title="Ordens" desc="Gerenciar OS" />
+        <NavCard to="/new-order" title="Nova OS" desc="Criar ordem" />
+        <NavCard to="/clients" title="Clientes" desc="Gerenciar clientes" />
+        <NavCard to="/reports" title="Relatórios" desc="Ver relatórios" />
       </div>
     </div>
   );
 }
 
-type CardProps = {
-  title: string;
-  value: number;
-};
-
-function Card({ title, value }: CardProps) {
+function StatCard({ title, value }: { title: string; value: number }) {
   return (
-    <div
-      style={{
-        borderRadius: "0.5rem",
-        border: "1px solid #e5e7eb",
-        padding: "1rem",
-        backgroundColor: "#ffffff",
-        boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
-      }}
-    >
-      <p style={{ fontSize: "0.875rem", color: "#6b7280" }}>{title}</p>
-      <p style={{ fontSize: "1.5rem", fontWeight: 600 }}>{value}</p>
+    <div className="card">
+      <p style={{ color: "#777", fontSize: 14 }}>{title}</p>
+      <h2 style={{ margin: 0 }}>{value}</h2>
     </div>
   );
 }
 
-function NavButton(props: { to: string; label: string; description: string }) {
+function NavCard({
+  to,
+  title,
+  desc,
+}: {
+  to: string;
+  title: string;
+  desc: string;
+}) {
   const navigate = useNavigate();
 
   return (
-    <button
-      type="button"
-      onClick={() => navigate(props.to)}
-      style={{
-        textAlign: "left",
-        borderRadius: "0.75rem",
-        border: "1px solid #e5e7eb",
-        padding: "0.75rem 1rem",
-        backgroundColor: "#f9fafb",
-        cursor: "pointer",
-        display: "grid",
-        gap: 4,
-      }}
+    <div
+      className="card"
+      style={{ cursor: "pointer" }}
+      onClick={() => navigate(to)}
     >
-      <span style={{ fontWeight: 600 }}>{props.label}</span>
-      <span style={{ fontSize: "0.8rem", color: "#6b7280" }}>
-        {props.description}
-      </span>
-    </button>
+      <h3>{title}</h3>
+      <p style={{ color: "#666" }}>{desc}</p>
+    </div>
   );
 }
