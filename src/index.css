@@ -1,5 +1,21 @@
 @import url("https://fonts.googleapis.com/css2?family=Trispace:wght@100..800&display=swap");
 
+/* ── TOKENS ─────────────────────────────────────────────── */
+:root {
+  --bg: #0f1117;
+  --surface: #181d27;
+  --surface2: #1f2636;
+  --border: #2a3248;
+  --text: #e2e8f0;
+  --muted: #7a8ba0;
+  --accent: #2dd4bf; /* teal */
+  --accent2: #34d399; /* esmeralda */
+  --danger: #f87171; /* vermelho suave */
+  --warn: #fbbf24; /* âmbar suave */
+  --info: #60a5fa; /* azul suave */
+  --radius: 10px;
+}
+
 /* ── RESET & BASE ───────────────────────────────────────── */
 *,
 *::before,
@@ -13,9 +29,20 @@
 
 body {
   margin: 0;
-  background-color: #f5f6fa;
+  background: var(--bg);
+  color: var(--text);
   font-size: 15px;
   -webkit-text-size-adjust: 100%;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  color: var(--text);
+}
+p {
+  color: var(--muted);
 }
 
 /* ── LAYOUT ─────────────────────────────────────────────── */
@@ -27,8 +54,8 @@ body {
 /* ── SIDEBAR ────────────────────────────────────────────── */
 .sidebar {
   width: 220px;
-  background: #fff;
-  border-right: 1px solid #e5e7eb;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
   padding: 20px;
   flex-shrink: 0;
 }
@@ -36,14 +63,19 @@ body {
 .sidebar h2 {
   font-size: 18px;
   margin-bottom: 20px;
-  color: #4f46e5;
+  color: var(--accent);
 }
 
 .sidebar a {
   display: block;
   margin: 10px 0;
-  color: #333;
+  color: var(--muted);
   text-decoration: none;
+  transition: color 0.15s;
+}
+
+.sidebar a:hover {
+  color: var(--text);
 }
 
 /* ── MAIN CONTENT ───────────────────────────────────────── */
@@ -55,10 +87,10 @@ body {
 
 /* ── CARD ───────────────────────────────────────────────── */
 .card {
-  background: #fff;
+  background: var(--surface);
   padding: 20px;
-  border-radius: 10px;
-  border: 1px solid #e5e7eb;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
   margin-bottom: 20px;
 }
 
@@ -67,37 +99,49 @@ body {
   width: 100%;
   padding: 10px;
   border-radius: 8px;
-  border: 1px solid #ccc;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--text);
   margin-top: 5px;
-  font-size: 15px;
-  /* evita zoom automático no iOS (mínimo 16px no input) */
   font-size: max(16px, 1em);
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.input:focus {
+  border-color: var(--accent);
+}
+
+.input option {
+  background: var(--surface2);
+  color: var(--text);
 }
 
 /* ── BOTÃO ──────────────────────────────────────────────── */
 .button {
-  background: #4f46e5;
-  color: white;
+  background: var(--accent);
+  color: #0f1117;
   padding: 12px;
   border: none;
   border-radius: 8px;
   cursor: pointer;
   font-size: 14px;
-  /* área de toque mínima recomendada */
+  font-weight: 600;
   min-height: 44px;
   min-width: 44px;
+  transition:
+    background 0.15s,
+    transform 0.1s;
 }
 
 .button:hover {
-  background: #4338ca;
+  background: var(--accent2);
 }
-
 .button:active {
-  background: #3730a3;
-  transform: scale(0.98);
+  transform: scale(0.97);
 }
 
-/* ── TABELA RESPONSIVA ──────────────────────────────────── */
+/* ── TABELA ─────────────────────────────────────────────── */
 .table-wrapper {
   width: 100%;
   overflow-x: auto;
@@ -107,21 +151,29 @@ body {
 table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 520px; /* garante scroll horizontal em vez de quebrar */
+  min-width: 520px;
 }
 
 th,
 td {
   padding: 10px 8px;
   text-align: left;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--border);
   white-space: nowrap;
 }
 
 th {
   font-weight: 600;
-  color: #555;
+  color: var(--muted);
   font-size: 13px;
+}
+
+td {
+  color: var(--text);
+}
+
+tr:hover td {
+  background: var(--surface2);
 }
 
 /* ── GRID UTILITÁRIO ────────────────────────────────────── */
@@ -130,7 +182,6 @@ th {
   grid-template-columns: 1fr 1fr;
   gap: 16px;
 }
-
 .grid-3 {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -149,14 +200,19 @@ th {
 .pagination button {
   padding: 8px 16px;
   border-radius: 8px;
-  border: 1px solid #e5e7eb;
-  background: #fff;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--text);
   cursor: pointer;
   min-height: 40px;
+  transition: border-color 0.15s;
 }
 
+.pagination button:hover:not(:disabled) {
+  border-color: var(--accent);
+}
 .pagination button:disabled {
-  opacity: 0.4;
+  opacity: 0.35;
   cursor: not-allowed;
 }
 
@@ -164,16 +220,17 @@ th {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.65);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 1000;
-  padding: 16px; /* evita modal colado na borda em mobile */
+  padding: 16px;
 }
 
 .modal-box {
-  background: #fff;
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 12px;
   padding: 24px;
   width: 100%;
@@ -188,99 +245,92 @@ th {
   flex-direction: column;
   margin-bottom: 12px;
 }
-
 .field span {
   font-size: 13px;
-  color: #555;
+  color: var(--muted);
   margin-bottom: 4px;
+}
+
+/* scrollbar customizada */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 99px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--muted);
 }
 
 /* ════════════════════════════════════════════════════════
    BREAKPOINTS
    ════════════════════════════════════════════════════════ */
 
-/* ── TABLET  (≤ 1024px) ─────────────────────────────────── */
 @media (max-width: 1024px) {
   .main {
     padding: 20px;
   }
-
   .grid-3 {
     grid-template-columns: 1fr 1fr;
   }
 }
 
-/* ── MOBILE  (≤ 768px) ──────────────────────────────────── */
 @media (max-width: 768px) {
   .main {
     padding: 14px;
   }
-
   .card {
     padding: 14px;
   }
-
   h1 {
     font-size: 20px;
   }
-
   h3 {
     font-size: 15px;
   }
-
-  /* botões de ação lado a lado viram coluna */
   .actions-row {
     display: flex;
     flex-direction: column;
     gap: 8px;
   }
-
   .actions-row .button,
-  .actions-row button {
+  .actions-row button,
+  .actions-row select {
     width: 100%;
   }
-
   .grid-2,
   .grid-3 {
     grid-template-columns: 1fr;
   }
-
-  /* select de status dentro dos cards de OS */
-  .actions-row select {
-    width: 100%;
-  }
-
-  /* tabela: scroll horizontal */
   table {
     font-size: 13px;
   }
-
   th,
   td {
     padding: 8px 6px;
   }
-
   .modal-box {
     padding: 16px;
   }
 }
 
-/* ── SMALL MOBILE  (≤ 480px) ────────────────────────────── */
 @media (max-width: 480px) {
   .main {
     padding: 10px;
   }
-
   .card {
     padding: 12px;
     border-radius: 8px;
   }
-
   .button {
     padding: 10px;
     font-size: 13px;
   }
-
   .pagination {
     justify-content: center;
   }

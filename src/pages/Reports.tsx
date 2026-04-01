@@ -11,6 +11,12 @@ import toast from "react-hot-toast";
 
 type OrderStatusFilter = "ALL" | "ABERTA" | "ANDAMENTO" | "FINALIZADA";
 
+const STATUS_COLORS: Record<string, { bg: string; color: string }> = {
+  ABERTA: { bg: "#fee2e2", color: "#b91c1c" },
+  ANDAMENTO: { bg: "#fef9c3", color: "#92400e" },
+  FINALIZADA: { bg: "#dcfce7", color: "#15803d" },
+};
+
 export default function Reports() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
@@ -20,10 +26,8 @@ export default function Reports() {
 
   const [statusFilter, setStatusFilter] = useState<OrderStatusFilter>("ALL");
   const [clientFilter, setClientFilter] = useState("");
-
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-
   const [page, setPage] = useState(1);
   const pageSize = 10;
 
@@ -37,7 +41,6 @@ export default function Reports() {
             getRevenueByMonth(),
             getMostUsedServices(),
           ]);
-
         setOrders(Array.isArray(ordersRes) ? ordersRes : []);
         setClients(clientsRes);
         setRevenue(Array.isArray(revenueRes) ? revenueRes : []);
@@ -48,38 +51,30 @@ export default function Reports() {
         setLoading(false);
       }
     }
-
     fetchData();
   }, []);
 
   const filteredOrders = useMemo(() => {
     return orders.filter((order) => {
       if (statusFilter !== "ALL" && order.status !== statusFilter) return false;
-
       if (clientFilter && order.clientId !== clientFilter) return false;
-
       const orderDate = order.scheduledFor
         ? new Date(order.scheduledFor).getTime()
         : 0;
-
       if (!orderDate) return true;
-
       if (startDate) {
         const start = new Date(startDate + "T00:00:00").getTime();
         if (orderDate < start) return false;
       }
-
       if (endDate) {
         const end = new Date(endDate + "T23:59:59").getTime();
         if (orderDate > end) return false;
       }
-
       return true;
     });
   }, [orders, statusFilter, clientFilter, startDate, endDate]);
 
   const totalPages = Math.ceil(filteredOrders.length / pageSize) || 1;
-
   const paginatedOrders = filteredOrders.slice(
     (page - 1) * pageSize,
     page * pageSize,
@@ -96,9 +91,7 @@ export default function Reports() {
   function handleGeneratePdf(order: Order) {
     try {
       const client = clients.find((c) => c.id === order.clientId);
-
       generateOrderPdf(order, client);
-
       toast.success("PDF gerado.");
     } catch (error) {
       console.error("Erro ao gerar PDF:", error);
@@ -106,9 +99,7 @@ export default function Reports() {
     }
   }
 
-  if (loading) {
-    return <div className="main">Carregando...</div>;
-  }
+  if (loading) return <div className="main">Carregando...</div>;
 
   return (
     <div className="main">
@@ -119,7 +110,7 @@ export default function Reports() {
 
       {/* FILTROS */}
       <div className="card" style={{ display: "grid", gap: 10 }}>
-        <h3>Filtros</h3>
+        <h3 style={{ margin: 0 }}>Filtros</h3>
 
         <select
           className="input"
@@ -151,7 +142,6 @@ export default function Reports() {
           value={startDate}
           onChange={(e) => setStartDate(e.target.value)}
         />
-
         <input
           type="date"
           className="input"
@@ -166,71 +156,132 @@ export default function Reports() {
 
       {/* TABELA */}
       <div className="card">
-        <h3>Resultados</h3>
+        <h3 style={{ margin: "0 0 12px" }}>Resultados</h3>
 
         {paginatedOrders.length === 0 ? (
           <p>Nenhuma OS encontrada.</p>
         ) : (
-          <table style={{ width: "100%", marginTop: 10 }}>
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Cliente</th>
-                <th>Tipo</th>
-                <th>Status</th>
-                <th>Valor</th>
-                <th>Data</th>
-                <th></th>
-              </tr>
-            </thead>
+          <div className="table-wrapper">
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <colgroup>
+                <col style={{ width: 64 }} /> {/* ID */}
+                <col style={{ width: "22%" }} /> {/* Cliente */}
+                <col style={{ width: "16%" }} /> {/* Tipo */}
+                <col style={{ width: 100 }} /> {/* Status */}
+                <col style={{ width: 80 }} /> {/* Valor */}
+                <col style={{ width: 88 }} /> {/* Data */}
+                <col style={{ width: 60 }} /> {/* PDF */}
+              </colgroup>
 
-            <tbody>
-              {paginatedOrders.map((o) => {
-                const client = clients.find((c) => c.id === o.clientId);
+              <thead>
+                <tr style={{ borderBottom: "2px solid #e5e7eb" }}>
+                  <th style={thStyle}>ID</th>
+                  <th style={thStyle}>Cliente</th>
+                  <th style={thStyle}>Tipo</th>
+                  <th style={thStyle}>Status</th>
+                  <th style={thStyle}>Valor</th>
+                  <th style={thStyle}>Data</th>
+                  <th style={thStyle}></th>
+                </tr>
+              </thead>
 
-                return (
-                  <tr key={o.id}>
-                    <td>{o.id.slice(0, 6)}</td>
-                    <td>{client?.nome}</td>
-                    <td>{o.tipo}</td>
-                    <td>{o.status}</td>
-                    <td>R$ {o.valor}</td>
-                    <td>
-                      {o.scheduledFor
-                        ? new Date(o.scheduledFor).toLocaleDateString("pt-BR")
-                        : "-"}
-                    </td>
-                    <td>
-                      <button
-                        className="button"
-                        onClick={() => handleGeneratePdf(o)}
+              <tbody>
+                {paginatedOrders.map((o) => {
+                  const client = clients.find((c) => c.id === o.clientId);
+                  const sc = STATUS_COLORS[o.status] ?? {
+                    bg: "#f3f4f6",
+                    color: "#333",
+                  };
+                  return (
+                    <tr
+                      key={o.id}
+                      style={{ borderBottom: "1px solid #f0f0f0" }}
+                    >
+                      <td style={tdStyle}>{o.id.slice(0, 6)}</td>
+                      <td
+                        style={{
+                          ...tdStyle,
+                          maxWidth: 0,
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
                       >
-                        PDF
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                        {client?.nome ?? "-"}
+                      </td>
+                      <td style={tdStyle}>{o.tipo}</td>
+                      <td style={tdStyle}>
+                        {/* badge colorido — não vaza mais */}
+                        <span
+                          style={{
+                            display: "inline-block",
+                            padding: "2px 8px",
+                            borderRadius: 99,
+                            fontSize: 11,
+                            fontWeight: 600,
+                            whiteSpace: "nowrap",
+                            background: sc.bg,
+                            color: sc.color,
+                          }}
+                        >
+                          {o.status}
+                        </span>
+                      </td>
+                      <td style={{ ...tdStyle, whiteSpace: "nowrap" }}>
+                        {Number(o.valor).toLocaleString("pt-BR", {
+                          style: "currency",
+                          currency: "BRL",
+                        })}
+                      </td>
+                      <td style={{ ...tdStyle, whiteSpace: "nowrap" }}>
+                        {o.scheduledFor
+                          ? new Date(o.scheduledFor).toLocaleDateString("pt-BR")
+                          : "-"}
+                      </td>
+                      <td style={tdStyle}>
+                        <button
+                          className="button"
+                          style={{
+                            padding: "6px 10px",
+                            fontSize: 12,
+                            minHeight: 36,
+                          }}
+                          onClick={() => handleGeneratePdf(o)}
+                        >
+                          PDF
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
 
       {/* PAGINAÇÃO */}
-      <div style={{ marginTop: 15, display: "flex", gap: 10 }}>
-        <button onClick={() => setPage(Math.max(1, page - 1))}>Anterior</button>
+      <div className="pagination">
+        <button
+          onClick={() => setPage(Math.max(1, page - 1))}
+          disabled={page === 1}
+        >
+          Anterior
+        </button>
         <span>
           Página {page} de {totalPages}
         </span>
-        <button onClick={() => setPage(Math.min(totalPages, page + 1))}>
+        <button
+          onClick={() => setPage(Math.min(totalPages, page + 1))}
+          disabled={page === totalPages}
+        >
           Próxima
         </button>
       </div>
 
       {/* FATURAMENTO POR MÊS */}
       <div className="card">
-        <h3>Faturamento por mês</h3>
-
+        <h3 style={{ margin: "0 0 12px" }}>Faturamento por mês</h3>
         {revenue.length === 0 ? (
           <p>Sem dados de faturamento.</p>
         ) : (
@@ -251,10 +302,14 @@ export default function Reports() {
             return (
               <div
                 key={r.mes}
-                style={{ padding: "6px 0", borderBottom: "1px solid #eee" }}
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  padding: "8px 0",
+                  borderBottom: "1px solid #eee",
+                }}
               >
                 <span style={{ textTransform: "capitalize" }}>{label}</span>
-                {" → "}
                 <strong>{valor}</strong>
               </div>
             );
@@ -264,17 +319,22 @@ export default function Reports() {
 
       {/* SERVIÇOS MAIS REALIZADOS */}
       <div className="card">
-        <h3>Serviços mais realizados</h3>
-
+        <h3 style={{ margin: "0 0 12px" }}>Serviços mais realizados</h3>
         {services.length === 0 ? (
           <p>Sem dados de serviços.</p>
         ) : (
           services.map((s: any) => (
             <div
               key={s.tipo}
-              style={{ padding: "6px 0", borderBottom: "1px solid #eee" }}
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                padding: "8px 0",
+                borderBottom: "1px solid #eee",
+              }}
             >
-              {s.tipo} → <strong>{s.total}</strong>
+              <span>{s.tipo}</span>
+              <strong>{s.total}</strong>
             </div>
           ))
         )}
@@ -282,3 +342,18 @@ export default function Reports() {
     </div>
   );
 }
+
+const thStyle: React.CSSProperties = {
+  padding: "8px 8px",
+  textAlign: "left",
+  fontSize: 12,
+  color: "#6b7280",
+  fontWeight: 600,
+  whiteSpace: "nowrap",
+};
+
+const tdStyle: React.CSSProperties = {
+  padding: "10px 8px",
+  fontSize: 13,
+  verticalAlign: "middle",
+};

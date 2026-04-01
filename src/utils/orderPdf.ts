@@ -3,8 +3,8 @@ import type { Order } from "../services/orderService";
 import type { Client } from "../services/clientService";
 
 const BRAND = "FrioOS";
-const PRIMARY = [0, 80, 160] as [number, number, number]; // azul escuro
-const ACCENT = [0, 160, 230] as [number, number, number]; // azul claro
+const PRIMARY = [0, 80, 160] as [number, number, number];
+const ACCENT = [0, 160, 230] as [number, number, number];
 const DARK = [30, 30, 30] as [number, number, number];
 const GRAY = [100, 100, 100] as [number, number, number];
 const LIGHT = [240, 245, 250] as [number, number, number];
@@ -63,27 +63,22 @@ export function generateOrderPdf(order: Order, client?: Client) {
   const innerW = W - margin * 2;
 
   // ─── CABEÇALHO ────────────────────────────────────────────────
-  // fundo azul escuro
   doc.setFillColor(...PRIMARY);
   doc.rect(0, 0, W, 38, "F");
 
-  // nome da empresa
   doc.setTextColor(...WHITE);
   doc.setFontSize(22);
   doc.setFont("helvetica", "bold");
   doc.text(BRAND, margin, 17);
 
-  // subtítulo
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
   doc.text("Ordem de Serviço", margin, 24);
 
-  // ID da OS (canto direito)
   doc.setFontSize(8);
   doc.setTextColor(...ACCENT);
   doc.text(`Nº ${order.id.toUpperCase()}`, W - margin, 17, { align: "right" });
 
-  // data de emissão (canto direito)
   doc.setTextColor(...WHITE);
   doc.text(
     `Emitido em: ${new Date().toLocaleString("pt-BR")}`,
@@ -92,14 +87,12 @@ export function generateOrderPdf(order: Order, client?: Client) {
     { align: "right" },
   );
 
-  // faixa azul claro de destaque
   doc.setFillColor(...ACCENT);
   doc.rect(0, 38, W, 4, "F");
 
   let y = 52;
 
   // ─── SEÇÃO CLIENTE ────────────────────────────────────────────
-  // fundo cinza claro
   doc.setFillColor(...LIGHT);
   doc.roundedRect(margin, y - 6, innerW, 36, 2, 2, "F");
 
@@ -109,14 +102,11 @@ export function generateOrderPdf(order: Order, client?: Client) {
   doc.text("DADOS DO CLIENTE", margin + 4, y);
 
   y += 7;
-  doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
-  doc.setTextColor(...DARK);
 
   const colLeft = margin + 4;
   const colRight = W / 2 + 4;
 
-  // linha 1
   doc.setFont("helvetica", "bold");
   doc.setTextColor(...GRAY);
   doc.text("Nome", colLeft, y);
@@ -156,7 +146,6 @@ export function generateOrderPdf(order: Order, client?: Client) {
   y += 7;
   doc.setFontSize(9);
 
-  // linha 1 — Tipo | Status
   doc.setFont("helvetica", "bold");
   doc.setTextColor(...GRAY);
   doc.text("Tipo", colLeft, y);
@@ -167,7 +156,6 @@ export function generateOrderPdf(order: Order, client?: Client) {
   doc.setTextColor(...DARK);
   doc.text(tipoLabel(order.tipo), colLeft, y);
 
-  // badge colorido de status
   const sc = statusColor(order.status);
   doc.setFillColor(...sc);
   doc.roundedRect(colRight - 1, y - 4, 28, 5.5, 1, 1, "F");
@@ -177,7 +165,6 @@ export function generateOrderPdf(order: Order, client?: Client) {
 
   y += 8;
 
-  // linha 2 — Valor | Criada em
   doc.setFont("helvetica", "bold");
   doc.setTextColor(...GRAY);
   doc.text("Valor", colLeft, y);
@@ -194,7 +181,6 @@ export function generateOrderPdf(order: Order, client?: Client) {
 
   y += 8;
 
-  // linha 3 — Data agendada
   doc.setFont("helvetica", "bold");
   doc.setTextColor(...GRAY);
   doc.text("Data do serviço", colLeft, y);
@@ -245,23 +231,17 @@ export function generateOrderPdf(order: Order, client?: Client) {
 
   y += obsLines.length * 5 + 10;
 
-  // ─── ASSINATURA ───────────────────────────────────────────────
+  // ─── ASSINATURA DO TÉCNICO ────────────────────────────────────
   const signY = Math.max(y + 10, 245);
 
   doc.setDrawColor(...GRAY);
   doc.setLineWidth(0.3);
-  doc.line(margin, signY, margin + 70, signY);
-  doc.line(W - margin - 70, signY, W - margin, signY);
+  doc.line(W / 2 - 35, signY, W / 2 + 35, signY);
 
   doc.setFontSize(8);
   doc.setTextColor(...GRAY);
   doc.setFont("helvetica", "normal");
-  doc.text("Assinatura do Técnico", margin + 35, signY + 4, {
-    align: "center",
-  });
-  doc.text("Assinatura do Cliente", W - margin - 35, signY + 4, {
-    align: "center",
-  });
+  doc.text("Assinatura do Técnico", W / 2, signY + 4, { align: "center" });
 
   // ─── RODAPÉ ───────────────────────────────────────────────────
   doc.setFillColor(...PRIMARY);
@@ -274,7 +254,6 @@ export function generateOrderPdf(order: Order, client?: Client) {
     align: "center",
   });
 
-  // salvar
   const filename = `OS_${order.id.slice(0, 8)}.pdf`;
   doc.save(filename);
 }

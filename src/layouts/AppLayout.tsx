@@ -13,7 +13,6 @@ const NAV_ITEMS = [
 export default function AppLayout() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
-
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -21,13 +20,12 @@ export default function AppLayout() {
     function handleResize() {
       const mobile = window.innerWidth <= 768;
       setIsMobile(mobile);
-      if (!mobile) setSidebarOpen(false); // reset ao voltar para desktop
+      if (!mobile) setSidebarOpen(false);
     }
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // fecha sidebar ao navegar no mobile
   function handleNavClick() {
     if (isMobile) setSidebarOpen(false);
   }
@@ -44,33 +42,33 @@ export default function AppLayout() {
         minHeight: "100vh",
         maxHeight: "100vh",
         overflow: "hidden",
+        background: "var(--bg)",
       }}
     >
-      {/* ── OVERLAY (mobile) ───────────────────────────── */}
+      {/* overlay mobile */}
       {isMobile && sidebarOpen && (
         <div
           onClick={() => setSidebarOpen(false)}
           style={{
             position: "fixed",
             inset: 0,
-            backgroundColor: "rgba(0,0,0,0.35)",
+            background: "rgba(0,0,0,0.6)",
             zIndex: 30,
           }}
         />
       )}
 
-      {/* ── SIDEBAR ────────────────────────────────────── */}
+      {/* SIDEBAR */}
       <aside
         style={{
           width: 220,
-          borderRight: "1px solid #ddd",
-          padding: "16px",
+          borderRight: "1px solid var(--border)",
+          padding: "20px 12px",
           display: "flex",
           flexDirection: "column",
-          gap: "4px",
-          backgroundColor: "#fff",
+          gap: 2,
+          background: "var(--surface)",
           flexShrink: 0,
-          // mobile: drawer deslizante
           ...(isMobile && {
             position: "fixed",
             top: 0,
@@ -79,17 +77,17 @@ export default function AppLayout() {
             zIndex: 40,
             transform: sidebarOpen ? "translateX(0)" : "translateX(-100%)",
             transition: "transform 0.25s ease",
-            boxShadow: sidebarOpen ? "4px 0 16px rgba(0,0,0,0.12)" : "none",
+            boxShadow: sidebarOpen ? "4px 0 24px rgba(0,0,0,0.4)" : "none",
           }),
         }}
       >
-        {/* cabeçalho da sidebar */}
         <div
           style={{
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            marginBottom: 16,
+            marginBottom: 20,
+            padding: "0 8px",
           }}
         >
           <h3
@@ -100,19 +98,20 @@ export default function AppLayout() {
             style={{
               margin: 0,
               cursor: "pointer",
-              color: "#4f46e5",
-              fontSize: 17,
+              color: "var(--accent)",
+              fontSize: 16,
+              letterSpacing: "0.03em",
             }}
           >
             ❄️ FrioOS
           </h3>
           {isMobile && (
             <button
-              type="button"
               onClick={() => setSidebarOpen(false)}
               style={{
                 border: "none",
                 background: "transparent",
+                color: "var(--muted)",
                 fontSize: 18,
                 cursor: "pointer",
                 padding: 4,
@@ -123,7 +122,6 @@ export default function AppLayout() {
           )}
         </div>
 
-        {/* links */}
         {NAV_ITEMS.map(({ to, label }) => {
           const active = pathname === to;
           return (
@@ -133,14 +131,17 @@ export default function AppLayout() {
               onClick={handleNavClick}
               style={{
                 display: "block",
-                padding: "10px 12px",
-                borderRadius: "8px",
-                background: active ? "#eef2ff" : "transparent",
-                color: active ? "#4f46e5" : "#333",
+                padding: "9px 12px",
+                borderRadius: 8,
+                background: active ? "rgba(45,212,191,0.12)" : "transparent",
+                color: active ? "var(--accent)" : "var(--muted)",
                 fontWeight: active ? 600 : 400,
                 textDecoration: "none",
                 fontSize: 14,
-                transition: "background 0.15s",
+                borderLeft: active
+                  ? "2px solid var(--accent)"
+                  : "2px solid transparent",
+                transition: "all 0.15s",
               }}
             >
               {label}
@@ -148,26 +149,32 @@ export default function AppLayout() {
           );
         })}
 
-        {/* botão sair */}
         <button
           onClick={handleLogout}
           style={{
             marginTop: "auto",
             padding: "10px 12px",
-            borderRadius: "8px",
-            border: "1px solid #ef4444",
-            background: "#fee2e2",
-            color: "#b91c1c",
+            borderRadius: 8,
+            border: "1px solid rgba(248,113,113,0.3)",
+            background: "rgba(248,113,113,0.08)",
+            color: "#f87171",
             cursor: "pointer",
             fontSize: 14,
             minHeight: 44,
+            transition: "background 0.15s",
           }}
+          onMouseEnter={(e) =>
+            (e.currentTarget.style.background = "rgba(248,113,113,0.15)")
+          }
+          onMouseLeave={(e) =>
+            (e.currentTarget.style.background = "rgba(248,113,113,0.08)")
+          }
         >
           Sair
         </button>
       </aside>
 
-      {/* ── CONTEÚDO PRINCIPAL ─────────────────────────── */}
+      {/* CONTEÚDO */}
       <div
         style={{
           flex: 1,
@@ -176,26 +183,25 @@ export default function AppLayout() {
           minWidth: 0,
         }}
       >
-        {/* header */}
         <header
           style={{
-            height: 56,
-            borderBottom: "1px solid #ddd",
+            height: 52,
+            borderBottom: "1px solid var(--border)",
             padding: "0 16px",
             display: "flex",
             alignItems: "center",
             gap: 12,
-            backgroundColor: "#fff",
+            background: "var(--surface)",
             flexShrink: 0,
           }}
         >
           {isMobile ? (
             <button
-              type="button"
-              onClick={() => setSidebarOpen((prev) => !prev)}
+              onClick={() => setSidebarOpen((p) => !p)}
               style={{
                 border: "none",
                 background: "transparent",
+                color: "var(--text)",
                 cursor: "pointer",
                 display: "flex",
                 alignItems: "center",
@@ -205,15 +211,20 @@ export default function AppLayout() {
                 minWidth: 44,
               }}
             >
-              <span style={{ fontSize: 22 }}>☰</span>
-              <span style={{ fontWeight: 700 }}>FrioOS</span>
+              <span style={{ fontSize: 20 }}>☰</span>
+              <span style={{ fontWeight: 700, color: "var(--accent)" }}>
+                FrioOS
+              </span>
             </button>
           ) : (
-            <span style={{ fontWeight: 700, color: "#4f46e5" }}>❄️ FrioOS</span>
+            <span
+              style={{ fontWeight: 700, color: "var(--accent)", fontSize: 15 }}
+            >
+              ❄️ FrioOS
+            </span>
           )}
         </header>
 
-        {/* página */}
         <main style={{ flex: 1, overflowY: "auto" }}>
           <Outlet />
         </main>
