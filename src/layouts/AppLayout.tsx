@@ -1,6 +1,6 @@
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { logout } from "../auth/auth";
+import { clearToken, logout } from "../auth/auth";
 
 const NAV_ITEMS = [
   { to: "/dashboard", label: "📊 Dashboard" },
@@ -10,11 +10,26 @@ const NAV_ITEMS = [
   { to: "/reports", label: "📈 Relatórios" },
 ];
 
+type User = { id: string; name: string; email: string; avatarUrl?: string };
+
 export default function AppLayout() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    const raw = localStorage.getItem("user");
+    if (raw) {
+      try {
+        setCurrentUser(JSON.parse(raw));
+      } catch {
+        setCurrentUser(null);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     function handleResize() {
@@ -31,9 +46,13 @@ export default function AppLayout() {
   }
 
   function handleLogout() {
-    logout();
+    logout?.();
+    clearToken();
+    localStorage.removeItem("user");
     navigate("/login", { replace: true });
   }
+
+  const initial = (currentUser?.name?.[0] || "U").toUpperCase();
 
   return (
     <div
@@ -183,14 +202,15 @@ export default function AppLayout() {
           minWidth: 0,
         }}
       >
+        {/* TOPBAR COM PERFIL */}
         <header
           style={{
-            height: 52,
+            height: 60,
             borderBottom: "1px solid var(--border)",
-            padding: "0 16px",
             display: "flex",
             alignItems: "center",
-            gap: 12,
+            justifyContent: "space-between",
+            padding: "0 16px",
             background: "var(--surface)",
             flexShrink: 0,
           }}
@@ -223,6 +243,45 @@ export default function AppLayout() {
               ❄️ FrioOS
             </span>
           )}
+
+          {/* perfil à direita */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 12,
+            }}
+          >
+            <span
+              style={{
+                fontSize: 13,
+                color: "var(--text)",
+                cursor: "pointer",
+              }}
+              onClick={() => navigate("/profile")}
+            >
+              {currentUser?.name || "Usuário"}
+            </span>
+
+            <div
+              onClick={() => navigate("/profile")}
+              style={{
+                width: 34,
+                height: 34,
+                borderRadius: "50%",
+                background: "rgba(45,212,191,0.2)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 14,
+                fontWeight: 600,
+                color: "var(--accent)",
+                cursor: "pointer",
+              }}
+            >
+              {initial}
+            </div>
+          </div>
         </header>
 
         <main style={{ flex: 1, overflowY: "auto" }}>

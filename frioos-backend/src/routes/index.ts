@@ -1,6 +1,11 @@
 import { Router } from "express";
 
-import { signup, login } from "../controllers/auth.controller";
+import {
+  signup,
+  login,
+  forgotPassword,
+  resetPassword,
+} from "../controllers/auth.controller";
 import { auth } from "../middlewares/auth";
 
 import { listClients, createClient } from "../controllers/client.controller";
@@ -13,11 +18,11 @@ import {
   getOrderStats,
   updateOrder,
   deleteOrder,
-} from "../controllers/order.controller";
-import {
   getRevenueByMonth,
   getMostUsedServices,
 } from "../controllers/order.controller";
+
+import { me, updateProfile } from "../controllers/user.controller";
 
 const router = Router();
 
@@ -26,11 +31,18 @@ const router = Router();
 // =============================
 router.post("/auth/signup", signup);
 router.post("/auth/login", login);
+router.post("/auth/forgot-password", forgotPassword);
+router.post("/auth/reset-password", resetPassword);
 
 // =============================
 // 🔒 ROTAS PROTEGIDAS (COM TOKEN)
 // =============================
 router.use(auth);
+
+// 👤 USUÁRIO (perfil)
+router.get("/me", me);
+router.put("/me", updateProfile);
+router.put("/user/profile", updateProfile);
 
 // 👥 CLIENTES
 router.get("/clients", listClients);

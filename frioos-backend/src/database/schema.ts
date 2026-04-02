@@ -1,76 +1,67 @@
-import { db } from "./connection";
+// src/database/schema.ts
+import { run } from "../database/db";
 
-export function initDb() {
-  db.serialize(() => {
-    // ✅ users
-    db.run(`
-      CREATE TABLE IF NOT EXISTS users (
-        id TEXT PRIMARY KEY,
-        name TEXT NOT NULL,
-        email TEXT NOT NULL UNIQUE,
-        passwordHash TEXT,
-        googleId TEXT,
-        createdAt TEXT NOT NULL
-      )
-    `);
+export async function initDb() {
+  await run(`
+    CREATE TABLE IF NOT EXISTS users (
+      id TEXT PRIMARY KEY,
+      name TEXT,
+      email TEXT UNIQUE,
+      passwordHash TEXT,
+      avatarUrl TEXT,
+      createdAt TEXT,
+      resetToken TEXT,
+      resetTokenExpiresAt TEXT
+    )
+  `);
 
-    // 🔥 MIGRAÇÃO googleId (caso já exista tabela)
-    db.all(`PRAGMA table_info(users)`, (err, rows: any[]) => {
-      if (err) return;
+  // garante colunas mesmo se já existir tabela antiga
+  try {
+    await run(`ALTER TABLE users ADD COLUMN resetToken TEXT`);
+  } catch {}
 
-      const hasGoogleId = rows.some((r) => r.name === "googleId");
-      if (!hasGoogleId) {
-        db.run(`ALTER TABLE users ADD COLUMN googleId TEXT`);
-      }
+  try {
+    await run(`ALTER TABLE users ADD COLUMN resetTokenExpiresAt TEXT`);
+  } catch {}
 
-      const hasPasswordHash = rows.some((r) => r.name === "passwordHash");
-      // (já existe, mas deixei aqui como padrão de migração)
-    });
+  try {
+    await run(`ALTER TABLE users ADD COLUMN avatarUrl TEXT`);
+  } catch {}
 
-    // ✅ clients
-    db.run(`
-      CREATE TABLE IF NOT EXISTS clients (
-        id TEXT PRIMARY KEY,
-        userId TEXT NOT NULL,
-        nome TEXT NOT NULL,
-        telefone TEXT,
-        endereco TEXT,
-        createdAt TEXT NOT NULL,
-        FOREIGN KEY (userId) REFERENCES users(id)
-      )
-    `);
+  // clients
+  await run(`
+    CREATE TABLE IF NOT EXISTS clients (
+      id TEXT PRIMARY KEY,
+      userId TEXT NOT NULL,
+      nome TEXT NOT NULL,
+      telefone TEXT,
+      endereco TEXT,
+      createdAt TEXT NOT NULL
+    )
+  `);
 
-    // ✅ orders
-    db.run(`
-      CREATE TABLE IF NOT EXISTS orders (
-        id TEXT PRIMARY KEY,
-        userId TEXT NOT NULL,
-        clientId TEXT NOT NULL,
-        tipo TEXT NOT NULL,
-        descricao TEXT NOT NULL,
-        obs TEXT,
-        valor REAL NOT NULL,
-        status TEXT NOT NULL,
-        createdAt TEXT NOT NULL,
-        scheduledFor TEXT,
-        FOREIGN KEY (userId) REFERENCES users(id),
-        FOREIGN KEY (clientId) REFERENCES clients(id)
-      )
-    `);
+  // orders
+  await run(`
+    CREATE TABLE IF NOT EXISTS orders (
+      id TEXT PRIMARY KEY,
+      userId TEXT NOT NULL,
+      clientId TEXT NOT NULL,
+      tipo TEXT NOT NULL,
+      descricao TEXT NOT NULL,
+      obs TEXT,
+      valor REAL NOT NULL,
+      status TEXT NOT NULL,
+      createdAt TEXT NOT NULL,
+      scheduledFor TEXT
+    )
+  `);
 
-    // 🔥 MIGRAÇÕES orders
-    db.all(`PRAGMA table_info(orders)`, (err, rows: any[]) => {
-      if (err) return;
+  // migrações simples para orders
+  try {
+    await run(`ALTER TABLE orders ADD COLUMN obs TEXT`);
+  } catch {}
 
-      const hasObs = rows.some((r) => r.name === "obs");
-      if (!hasObs) {
-        db.run(`ALTER TABLE orders ADD COLUMN obs TEXT`);
-      }
-
-      const hasScheduledFor = rows.some((r) => r.name === "scheduledFor");
-      if (!hasScheduledFor) {
-        db.run(`ALTER TABLE orders ADD COLUMN scheduledFor TEXT`);
-      }
-    });
-  });
+  try {
+    await run(`ALTER TABLE orders ADD COLUMN scheduledFor TEXT`);
+  } catch {}
 }

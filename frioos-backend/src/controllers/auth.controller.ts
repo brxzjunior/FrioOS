@@ -3,6 +3,11 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { randomUUID } from "crypto";
 import { get, run } from "../database/db";
+import { sendEmail } from "../utils/sendEmail";
+
+// reset senha
+import { generateResetToken } from "../utils/generateResetToken";
+import { saveResetToken, findUserByResetToken } from "../services/user.service";
 
 function signToken(user: { id: string; email: string }) {
   const secret = process.env.JWT_SECRET;
@@ -14,11 +19,13 @@ function signToken(user: { id: string; email: string }) {
   });
 }
 
+// ─────────────────────────────
+// SIGNUP
+// ─────────────────────────────
 export async function signup(req: Request, res: Response) {
   try {
     const { name, email, password } = req.body;
 
-    // validações
     if (!name || name.trim().length < 2) {
       return res.status(400).json({ message: "Nome inválido" });
     }
@@ -50,7 +57,7 @@ export async function signup(req: Request, res: Response) {
 
     await run(
       `INSERT INTO users (id, name, email, passwordHash, createdAt)
-        VALUES (?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?)`,
       [user.id, user.name, user.email, user.passwordHash, user.createdAt],
     );
 
@@ -71,6 +78,9 @@ export async function signup(req: Request, res: Response) {
   }
 }
 
+// ─────────────────────────────
+// LOGIN
+// ─────────────────────────────
 export async function login(req: Request, res: Response) {
   try {
     const { email, password } = req.body;
@@ -113,6 +123,100 @@ export async function login(req: Request, res: Response) {
   } catch (err: any) {
     return res.status(500).json({
       message: err.message || "Erro interno",
+    });
+  }
+}
+
+// ─────────────────────────────
+// FORGOT PASSWORD
+// ─────────────────────────────
+
+export async function forgotPassword(req: Request, res: Response) {
+  try {
+    const { email } = req.body;
+
+    const user = await get(`SELECT * FROM users WHERE email = ?`, [email]);
+
+    if (!user) {
+      return res.json({ message: "Se existir, enviaremos o email." });
+    }
+
+    const token = generateResetToken();
+    const expires = new Date(Date.now() + 1000 * 60 * 15).toISOString();
+
+    await saveResetToken(user.id, token, expires);
+
+    const link = `http://localhost:5173/reset-password?token=${token}`;
+
+    await sendEmail(
+      email,
+      "Recuperação de senha - FrioOS",
+      `
+      <div style="font-family:sans-serif">
+        <h2>Recuperação de senha</h2>
+        <p>Clique no botão abaixo para redefinir sua senha:</p>
+        <a href="${link}" 
+           style="display:inline-block;padding:10px 20px;
+           background:#2dd4bf;color:#000;text-decoration:none;border-radius:6px">
+           Resetar senha
+        </a>
+        <p>Esse link expira em 15 minutos.</p>
+      </div>
+      `,
+    );
+
+    return res.json({ message: "Email enviado!" });
+  } catch (err: any) {
+    return res.status(500).json({ message: err.message });
+  }
+}
+
+// ─────────────────────────────
+// RESET PASSWORD
+// ─────────────────────────────
+export async function resetPassword(req: Request, res: Response) {
+  try {
+    const { token, newPassword } = req.body;
+
+    if (!token || !newPassword) {
+      return res.status(400).json({
+        message: "Token e nova senha são obrigatórios",
+      });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({
+        message: "Senha deve ter pelo menos 6 caracteres",
+      });
+    }
+
+    const user = await findUserByResetToken(token);
+
+    if (!user) {
+      return res.status(400).json({ message: "Token inválido" });
+    }
+
+    if (!user.resetTokenExpiresAt) {
+      return res.status(400).json({ message: "Token inválido" });
+    }
+
+    if (new Date(user.resetTokenExpiresAt) < new Date()) {
+      return res.status(400).json({ message: "Token expirado" });
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+
+    await run(
+      `UPDATE users 
+       SET passwordHash = ?, resetToken = NULL, resetTokenExpiresAt = NULL
+       WHERE id = ?`,
+      [passwordHash, user.id],
+    );
+
+    return res.json({ ok: true });
+  } catch (err: any) {
+    return res.status(500).json({
+      message: err.message || "Erro ao resetar senha",
     });
   }
 }

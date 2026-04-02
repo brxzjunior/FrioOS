@@ -17,6 +17,12 @@ const STATUS_COLORS: Record<string, { bg: string; color: string }> = {
   FINALIZADA: { bg: "#dcfce7", color: "#15803d" },
 };
 
+// ✅ helper padrão (ESSENCIAL)
+function formatDateBR(date: string) {
+  const [year, month, day] = date.split("-");
+  return `${day}/${month}/${year}`;
+}
+
 export default function Reports() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
@@ -54,22 +60,18 @@ export default function Reports() {
     fetchData();
   }, []);
 
+  // ✅ FILTRO CORRIGIDO (SEM Date / SEM timezone)
   const filteredOrders = useMemo(() => {
     return orders.filter((order) => {
       if (statusFilter !== "ALL" && order.status !== statusFilter) return false;
       if (clientFilter && order.clientId !== clientFilter) return false;
-      const orderDate = order.scheduledFor
-        ? new Date(order.scheduledFor).getTime()
-        : 0;
-      if (!orderDate) return true;
-      if (startDate) {
-        const start = new Date(startDate + "T00:00:00").getTime();
-        if (orderDate < start) return false;
-      }
-      if (endDate) {
-        const end = new Date(endDate + "T23:59:59").getTime();
-        if (orderDate > end) return false;
-      }
+
+      if (!order.scheduledFor) return true;
+
+      // comparação segura por string (YYYY-MM-DD)
+      if (startDate && order.scheduledFor < startDate) return false;
+      if (endDate && order.scheduledFor > endDate) return false;
+
       return true;
     });
   }, [orders, statusFilter, clientFilter, startDate, endDate]);
@@ -163,16 +165,6 @@ export default function Reports() {
         ) : (
           <div className="table-wrapper">
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
-              <colgroup>
-                <col style={{ width: 64 }} /> {/* ID */}
-                <col style={{ width: "22%" }} /> {/* Cliente */}
-                <col style={{ width: "16%" }} /> {/* Tipo */}
-                <col style={{ width: 100 }} /> {/* Status */}
-                <col style={{ width: 80 }} /> {/* Valor */}
-                <col style={{ width: 88 }} /> {/* Data */}
-                <col style={{ width: 60 }} /> {/* PDF */}
-              </colgroup>
-
               <thead>
                 <tr style={{ borderBottom: "2px solid #e5e7eb" }}>
                   <th style={thStyle}>ID</th>
@@ -193,33 +185,17 @@ export default function Reports() {
                     color: "#333",
                   };
                   return (
-                    <tr
-                      key={o.id}
-                      style={{ borderBottom: "1px solid #f0f0f0" }}
-                    >
+                    <tr key={o.id}>
                       <td style={tdStyle}>{o.id.slice(0, 6)}</td>
-                      <td
-                        style={{
-                          ...tdStyle,
-                          maxWidth: 0,
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        {client?.nome ?? "-"}
-                      </td>
+                      <td style={tdStyle}>{client?.nome ?? "-"}</td>
                       <td style={tdStyle}>{o.tipo}</td>
                       <td style={tdStyle}>
-                        {/* badge colorido — não vaza mais */}
                         <span
                           style={{
-                            display: "inline-block",
                             padding: "2px 8px",
                             borderRadius: 99,
                             fontSize: 11,
                             fontWeight: 600,
-                            whiteSpace: "nowrap",
                             background: sc.bg,
                             color: sc.color,
                           }}
@@ -227,25 +203,18 @@ export default function Reports() {
                           {o.status}
                         </span>
                       </td>
-                      <td style={{ ...tdStyle, whiteSpace: "nowrap" }}>
+                      <td style={tdStyle}>
                         {Number(o.valor).toLocaleString("pt-BR", {
                           style: "currency",
                           currency: "BRL",
                         })}
                       </td>
-                      <td style={{ ...tdStyle, whiteSpace: "nowrap" }}>
-                        {o.scheduledFor
-                          ? new Date(o.scheduledFor).toLocaleDateString("pt-BR")
-                          : "-"}
+                      <td style={tdStyle}>
+                        {o.scheduledFor ? formatDateBR(o.scheduledFor) : "-"}
                       </td>
                       <td style={tdStyle}>
                         <button
                           className="button"
-                          style={{
-                            padding: "6px 10px",
-                            fontSize: 12,
-                            minHeight: 36,
-                          }}
                           onClick={() => handleGeneratePdf(o)}
                         >
                           PDF
@@ -259,101 +228,17 @@ export default function Reports() {
           </div>
         )}
       </div>
-
-      {/* PAGINAÇÃO */}
-      <div className="pagination">
-        <button
-          onClick={() => setPage(Math.max(1, page - 1))}
-          disabled={page === 1}
-        >
-          Anterior
-        </button>
-        <span>
-          Página {page} de {totalPages}
-        </span>
-        <button
-          onClick={() => setPage(Math.min(totalPages, page + 1))}
-          disabled={page === totalPages}
-        >
-          Próxima
-        </button>
-      </div>
-
-      {/* FATURAMENTO POR MÊS */}
-      <div className="card">
-        <h3 style={{ margin: "0 0 12px" }}>Faturamento por mês</h3>
-        {revenue.length === 0 ? (
-          <p>Sem dados de faturamento.</p>
-        ) : (
-          revenue.map((r: any) => {
-            const [year, month] = r.mes.split("-");
-            const label = new Date(
-              Number(year),
-              Number(month) - 1,
-              1,
-            ).toLocaleDateString("pt-BR", {
-              month: "long",
-              year: "numeric",
-            });
-            const valor = Number(r.total).toLocaleString("pt-BR", {
-              style: "currency",
-              currency: "BRL",
-            });
-            return (
-              <div
-                key={r.mes}
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  padding: "8px 0",
-                  borderBottom: "1px solid #eee",
-                }}
-              >
-                <span style={{ textTransform: "capitalize" }}>{label}</span>
-                <strong>{valor}</strong>
-              </div>
-            );
-          })
-        )}
-      </div>
-
-      {/* SERVIÇOS MAIS REALIZADOS */}
-      <div className="card">
-        <h3 style={{ margin: "0 0 12px" }}>Serviços mais realizados</h3>
-        {services.length === 0 ? (
-          <p>Sem dados de serviços.</p>
-        ) : (
-          services.map((s: any) => (
-            <div
-              key={s.tipo}
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                padding: "8px 0",
-                borderBottom: "1px solid #eee",
-              }}
-            >
-              <span>{s.tipo}</span>
-              <strong>{s.total}</strong>
-            </div>
-          ))
-        )}
-      </div>
     </div>
   );
 }
 
 const thStyle: React.CSSProperties = {
-  padding: "8px 8px",
+  padding: "8px",
   textAlign: "left",
   fontSize: 12,
-  color: "#6b7280",
-  fontWeight: 600,
-  whiteSpace: "nowrap",
 };
 
 const tdStyle: React.CSSProperties = {
-  padding: "10px 8px",
+  padding: "10px",
   fontSize: 13,
-  verticalAlign: "middle",
 };

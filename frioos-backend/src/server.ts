@@ -8,6 +8,7 @@ import "./config/googleAuth";
 import { generateToken } from "./utils/generateToken";
 
 const app = express();
+const PORT = 3333;
 
 // 🔥 INIT DB
 initDb();
@@ -17,13 +18,17 @@ app.use(cors());
 app.use(express.json());
 app.use(passport.initialize());
 
-// 🔥 TESTE (IMPORTANTE PRA DEBUG)
+// =============================
+// 🔓 ROTAS PÚBLICAS (FORA DO /api)
+// =============================
+
+// teste
 app.get("/auth/test", (req, res) => {
   console.log("✅ /auth/test funcionando");
   res.send("AUTH OK");
 });
 
-// 🔥 GOOGLE LOGIN
+// GOOGLE LOGIN
 app.get(
   "/auth/google",
   (req, res, next) => {
@@ -35,7 +40,7 @@ app.get(
   }),
 );
 
-// 🔥 CALLBACK GOOGLE
+// CALLBACK GOOGLE
 app.get(
   "/auth/google/callback",
   passport.authenticate("google", {
@@ -60,15 +65,21 @@ app.get(
   },
 );
 
-// 🔽 ROTAS DA API (SEMPRE DEPOIS DO AUTH)
+// =============================
+// 🔐 API (TUDO COM /api)
+// =============================
 app.use("/api", routes);
 
-// 🔥 ROOT
+// =============================
+// ROOT
+// =============================
 app.get("/", (req, res) => {
   res.send("API FrioOS online ✅");
 });
 
-// 🔥 START
-app.listen(3333, () => {
-  console.log("✅ API rodando em http://localhost:3333");
+// =============================
+// START
+// =============================
+app.listen(PORT, () => {
+  console.log(`✅ API rodando em http://localhost:${PORT}`);
 });

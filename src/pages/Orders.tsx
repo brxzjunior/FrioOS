@@ -377,8 +377,7 @@ export default function Orders() {
                       <span>👤 {client?.nome ?? "—"}</span>
                       {o.scheduledFor && (
                         <span>
-                          📅{" "}
-                          {new Date(o.scheduledFor).toLocaleDateString("pt-BR")}
+                          📅 {o.scheduledFor.split("-").reverse().join("/")}
                         </span>
                       )}
                     </div>

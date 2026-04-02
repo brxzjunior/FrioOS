@@ -12,6 +12,11 @@ export function getToken(): string | null {
   return localStorage.getItem(KEY);
 }
 
-export function logout(): void {
+export function clearToken(): void {
   localStorage.removeItem(KEY);
+}
+
+// alias, se em algum lugar você já usa logout()
+export function logout(): void {
+  clearToken();
 }
