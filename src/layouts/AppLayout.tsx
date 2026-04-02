@@ -1,3 +1,4 @@
+// src/components/AppLayout.tsx
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { clearToken, logout } from "../auth/auth";
@@ -64,7 +65,6 @@ export default function AppLayout() {
         background: "var(--bg)",
       }}
     >
-      {/* overlay mobile */}
       {isMobile && sidebarOpen && (
         <div
           onClick={() => setSidebarOpen(false)}
@@ -77,7 +77,6 @@ export default function AppLayout() {
         />
       )}
 
-      {/* SIDEBAR */}
       <aside
         style={{
           width: 220,
@@ -193,7 +192,6 @@ export default function AppLayout() {
         </button>
       </aside>
 
-      {/* CONTEÚDO */}
       <div
         style={{
           flex: 1,
@@ -202,7 +200,6 @@ export default function AppLayout() {
           minWidth: 0,
         }}
       >
-        {/* TOPBAR COM PERFIL */}
         <header
           style={{
             height: 60,
@@ -244,7 +241,6 @@ export default function AppLayout() {
             </span>
           )}
 
-          {/* perfil à direita */}
           <div
             style={{
               display: "flex",
@@ -277,14 +273,30 @@ export default function AppLayout() {
                 fontWeight: 600,
                 color: "var(--accent)",
                 cursor: "pointer",
+                overflow: "hidden",
               }}
             >
-              {initial}
+              {currentUser?.avatarUrl ? (
+                <img
+                  src={currentUser.avatarUrl}
+                  alt={currentUser.name}
+                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                />
+              ) : (
+                initial
+              )}
             </div>
           </div>
         </header>
 
-        <main style={{ flex: 1, overflowY: "auto" }}>
+        <main
+          style={{
+            flex: 1,
+            overflowY: "auto",
+            padding: 24,
+            background: "var(--bg0)",
+          }}
+        >
           <Outlet />
         </main>
       </div>

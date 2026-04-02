@@ -24,12 +24,20 @@ export default function Login() {
     }
     try {
       setLoading(true);
-      const data = await login({ email, password }); // { token, user }
+      const data = await login({ email, password });
 
-      // salva token
       setToken(data.token);
 
-      // salva usuário para o AppLayout ler
+      // 👇 mantém isso também
+      localStorage.setItem("user", JSON.stringify(data.user));
+
+      toast.success("Login realizado!");
+      navigate("/dashboard");
+
+      // 1) salva token
+      localStorage.setItem("user", JSON.stringify(data.user));
+
+      // 2) salva usuário para o AppLayout ler
       localStorage.setItem("user", JSON.stringify(data.user));
 
       toast.success("Login realizado!");

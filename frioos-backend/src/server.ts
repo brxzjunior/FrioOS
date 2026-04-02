@@ -6,6 +6,7 @@ import "dotenv/config";
 import passport from "passport";
 import "./config/googleAuth";
 import { generateToken } from "./utils/generateToken";
+import uploadRoutes from "./routes/upload.routes";
 
 const app = express();
 const PORT = 3333;
@@ -17,6 +18,10 @@ initDb();
 app.use(cors());
 app.use(express.json());
 app.use(passport.initialize());
+
+// Upload fotos
+app.use("/upload", uploadRoutes);
+app.use("/uploads", express.static("uploads"));
 
 // =============================
 // 🔓 ROTAS PÚBLICAS (FORA DO /api)

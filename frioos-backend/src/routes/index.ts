@@ -1,4 +1,5 @@
 import { Router } from "express";
+import uploadRoutes from "./upload.routes"; // 👈 IMPORTA
 
 import {
   signup,
@@ -74,5 +75,6 @@ router.put("/orders/:id", updateOrder);
 
 // 🗑️ DELETAR ORDEM
 router.delete("/orders/:id", deleteOrder);
+router.use("/upload", uploadRoutes); // 👈 REGISTRA
 
 export default router;

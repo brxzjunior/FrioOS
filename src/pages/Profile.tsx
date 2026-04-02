@@ -1,6 +1,6 @@
-// src/pages/Profile.tsx
 import { useEffect, useState } from "react";
 import { getMe, updateProfile } from "../services/userService";
+import { uploadAvatar } from "../services/uploadService"; // ✅ ADICIONADO
 import { clearToken } from "../auth/auth";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
@@ -13,6 +13,7 @@ export default function Profile() {
   const [avatarUrl, setAvatarUrl] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -35,7 +36,7 @@ export default function Profile() {
       const updated = await updateProfile({ name, avatarUrl });
       setUser(updated);
       toast.success("Perfil atualizado!");
-      // opcional: atualizar cache local usado no AppLayout
+
       localStorage.setItem(
         "user",
         JSON.stringify({
@@ -52,6 +53,24 @@ export default function Profile() {
     }
   }
 
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setUploading(true);
+      const { url } = await uploadAvatar(file);
+      setAvatarUrl(url);
+      toast.success("Foto enviada!");
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err?.response?.data?.message || "Erro ao enviar foto.");
+    } finally {
+      setUploading(false);
+      e.target.value = "";
+    }
+  }
+
   function handleLogout() {
     clearToken();
     localStorage.removeItem("user");
@@ -60,19 +79,19 @@ export default function Profile() {
 
   if (loading) return <div className="main">Carregando...</div>;
 
+  const preview =
+    avatarUrl ||
+    "https://ui-avatars.com/api/?name=" + encodeURIComponent(name || "Usuario");
+
   return (
     <div className="main">
       <h1>Meu Perfil</h1>
       <p style={{ marginBottom: 20 }}>Gerencie suas informações</p>
 
       <div className="card" style={{ maxWidth: 500 }}>
-        {/* avatar */}
         <div style={{ textAlign: "center", marginBottom: 20 }}>
           <img
-            src={
-              avatarUrl ||
-              "https://ui-avatars.com/api/?name=" + encodeURIComponent(name)
-            }
+            src={preview}
             alt="avatar"
             style={{
               width: 80,
@@ -81,6 +100,24 @@ export default function Profile() {
               objectFit: "cover",
             }}
           />
+
+          <div style={{ marginTop: 10 }}>
+            <label
+              style={{
+                fontSize: 12,
+                color: "var(--accent)",
+                cursor: "pointer",
+              }}
+            >
+              <input
+                type="file"
+                accept="image/*"
+                style={{ display: "none" }}
+                onChange={handleFileChange}
+              />
+              {uploading ? "Enviando..." : "Enviar foto da máquina"}
+            </label>
+          </div>
         </div>
 
         <div className="field">

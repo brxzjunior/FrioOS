@@ -25,7 +25,7 @@ export async function initDb() {
   } catch {}
 
   try {
-    await run(`ALTER TABLE users ADD COLUMN avatarUrl TEXT`);
+    await run(`ALTER TABLE users ADD COLUMN avatarUrl TEXT;`);
   } catch {}
 
   // clients

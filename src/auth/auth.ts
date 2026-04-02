@@ -4,16 +4,16 @@ export function isAuthenticated(): boolean {
   return Boolean(localStorage.getItem(KEY));
 }
 
-export function setToken(token: string): void {
-  localStorage.setItem(KEY, token);
+export function setToken(token: string) {
+  localStorage.setItem("token", token);
 }
 
-export function getToken(): string | null {
-  return localStorage.getItem(KEY);
+export function getToken() {
+  return localStorage.getItem("token");
 }
 
-export function clearToken(): void {
-  localStorage.removeItem(KEY);
+export function clearToken() {
+  localStorage.removeItem("token");
 }
 
 // alias, se em algum lugar você já usa logout()

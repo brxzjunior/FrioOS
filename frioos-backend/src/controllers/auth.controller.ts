@@ -7,7 +7,7 @@ import { sendEmail } from "../utils/sendEmail";
 
 // reset senha
 import { generateResetToken } from "../utils/generateResetToken";
-import { saveResetToken, findUserByResetToken } from "../services/user.service";
+import { saveResetToken, getUserByResetToken } from "../services/user.service";
 
 function signToken(user: { id: string; email: string }) {
   const secret = process.env.JWT_SECRET;
@@ -52,13 +52,21 @@ export async function signup(req: Request, res: Response) {
       name: name.trim(),
       email: email.toLowerCase().trim(),
       passwordHash: await bcrypt.hash(password, 10),
+      avatarUrl: null,
       createdAt: new Date().toISOString(),
     };
 
     await run(
-      `INSERT INTO users (id, name, email, passwordHash, createdAt)
-       VALUES (?, ?, ?, ?, ?)`,
-      [user.id, user.name, user.email, user.passwordHash, user.createdAt],
+      `INSERT INTO users (id, name, email, passwordHash, avatarUrl, createdAt)
+   VALUES (?, ?, ?, ?, ?, ?)`,
+      [
+        user.id,
+        user.name,
+        user.email,
+        user.passwordHash,
+        user.avatarUrl,
+        user.createdAt,
+      ],
     );
 
     const token = signToken({ id: user.id, email: user.email });
@@ -96,6 +104,7 @@ export async function login(req: Request, res: Response) {
       name: string;
       email: string;
       passwordHash: string;
+      avatarUrl?: string;
     }>(`SELECT id, name, email, passwordHash FROM users WHERE email = ?`, [
       email.toLowerCase().trim(),
     ]);
@@ -118,6 +127,7 @@ export async function login(req: Request, res: Response) {
         id: user.id,
         name: user.name,
         email: user.email,
+        avatarUrl: user.avatarUrl,
       },
     });
   } catch (err: any) {
@@ -190,7 +200,7 @@ export async function resetPassword(req: Request, res: Response) {
       });
     }
 
-    const user = await findUserByResetToken(token);
+    const user = await getUserByResetToken(token);
 
     if (!user) {
       return res.status(400).json({ message: "Token inválido" });
@@ -208,8 +218,8 @@ export async function resetPassword(req: Request, res: Response) {
 
     await run(
       `UPDATE users 
-       SET passwordHash = ?, resetToken = NULL, resetTokenExpiresAt = NULL
-       WHERE id = ?`,
+   SET passwordHash = ?, resetToken = NULL, resetTokenExpiresAt = NULL
+   WHERE id = ?`,
       [passwordHash, user.id],
     );
 
