@@ -26,3 +26,27 @@ export async function createClient(req: Request, res: Response) {
     return res.status(400).json({ message: err.message ?? "Dados inválidos" });
   }
 }
+
+export async function updateClient(req: Request, res: Response) {
+  try {
+    const userId = getUserId(req);
+    const id = req.params["id"] as string;
+    const updated = await clientService.update(userId, id, req.body);
+    return res.json(updated);
+  } catch (err: any) {
+    return res
+      .status(400)
+      .json({ message: err.message ?? "Erro ao atualizar" });
+  }
+}
+
+export async function deleteClient(req: Request, res: Response) {
+  try {
+    const userId = getUserId(req);
+    const id = req.params["id"] as string;
+    await clientService.remove(userId, id);
+    return res.status(204).send();
+  } catch (err: any) {
+    return res.status(400).json({ message: err.message ?? "Erro ao excluir" });
+  }
+}

@@ -21,6 +21,14 @@ export async function createClient(data: {
   return created;
 }
 
+export async function updateClient(
+  id: string,
+  data: { nome?: string; telefone?: string; endereco?: string },
+): Promise<Client> {
+  const { data: updated } = await api.put<Client>(`/clients/${id}`, data);
+  return updated;
+}
+
 export async function deleteClient(id: string): Promise<void> {
   await api.delete(`/clients/${id}`);
 }

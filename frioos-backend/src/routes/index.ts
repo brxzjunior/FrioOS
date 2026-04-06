@@ -1,5 +1,5 @@
 import { Router } from "express";
-import uploadRoutes from "./upload.routes"; // 👈 IMPORTA
+import uploadRoutes from "./upload.routes";
 
 import {
   signup,
@@ -9,7 +9,12 @@ import {
 } from "../controllers/auth.controller";
 import { auth } from "../middlewares/auth";
 
-import { listClients, createClient } from "../controllers/client.controller";
+import {
+  listClients,
+  createClient,
+  updateClient,
+  deleteClient,
+} from "../controllers/client.controller";
 
 import {
   listOrders,
@@ -27,20 +32,16 @@ import { me, updateProfile } from "../controllers/user.controller";
 
 const router = Router();
 
-// =============================
-// 🌐 ROTAS PÚBLICAS (SEM TOKEN)
-// =============================
+// ── PÚBLICAS ──────────────────────────────────────────────
 router.post("/auth/signup", signup);
 router.post("/auth/login", login);
 router.post("/auth/forgot-password", forgotPassword);
 router.post("/auth/reset-password", resetPassword);
 
-// =============================
-// 🔒 ROTAS PROTEGIDAS (COM TOKEN)
-// =============================
+// ── PROTEGIDAS ────────────────────────────────────────────
 router.use(auth);
 
-// 👤 USUÁRIO (perfil)
+// 👤 USUÁRIO
 router.get("/me", me);
 router.put("/me", updateProfile);
 router.put("/user/profile", updateProfile);
@@ -48,33 +49,21 @@ router.put("/user/profile", updateProfile);
 // 👥 CLIENTES
 router.get("/clients", listClients);
 router.post("/clients", createClient);
+router.put("/clients/:id", updateClient);
+router.delete("/clients/:id", deleteClient);
 
 // 📦 ORDENS
 router.get("/orders", listOrders);
-
-// 📊 ESTATÍSTICAS (ANTES DO :id)
 router.get("/orders/stats", getOrderStats);
-
-// 💰 FATURAMENTO POR MÊS
 router.get("/orders/revenue/month", getRevenueByMonth);
-
-// 🔧 SERVIÇOS MAIS FEITOS
 router.get("/orders/stats/services", getMostUsedServices);
-
-// 🔎 BUSCAR POR ID
 router.get("/orders/:id", getOrderById);
-
-// ➕ CRIAR ORDEM
 router.post("/orders", createOrder);
-
-// 🔄 ATUALIZAR STATUS
 router.patch("/orders/:id/status", updateOrderStatus);
-
-// ✏️ EDITAR ORDEM
 router.put("/orders/:id", updateOrder);
-
-// 🗑️ DELETAR ORDEM
 router.delete("/orders/:id", deleteOrder);
-router.use("/upload", uploadRoutes); // 👈 REGISTRA
+
+// 📎 UPLOAD
+router.use("/upload", uploadRoutes);
 
 export default router;
