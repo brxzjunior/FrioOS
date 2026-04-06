@@ -2,6 +2,7 @@
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { clearToken, logout } from "../auth/auth";
+import { getMe } from "../services/userService";
 
 const NAV_ITEMS = [
   { to: "/dashboard", label: "📊 Dashboard" },
@@ -22,14 +23,21 @@ export default function AppLayout() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
 
   useEffect(() => {
-    const raw = localStorage.getItem("user");
-    if (raw) {
+    async function loadUser() {
       try {
-        setCurrentUser(JSON.parse(raw));
-      } catch {
-        setCurrentUser(null);
+        // 🔥 pega do backend (CORRETO)
+        const data = await getMe();
+
+        setCurrentUser(data);
+
+        // 🔥 salva completo (inclui avatar)
+        localStorage.setItem("user", JSON.stringify(data));
+      } catch (err) {
+        console.error("Erro ao carregar usuário", err);
       }
     }
+
+    loadUser();
   }, []);
 
   useEffect(() => {

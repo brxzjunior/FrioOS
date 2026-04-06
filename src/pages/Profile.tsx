@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { getMe, updateProfile } from "../services/userService";
-import { uploadAvatar } from "../services/uploadService"; // ✅ ADICIONADO
+import { uploadAvatar } from "../services/uploadService";
 import { clearToken } from "../auth/auth";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
@@ -33,10 +33,27 @@ export default function Profile() {
   async function handleSave() {
     try {
       setSaving(true);
-      const updated = await updateProfile({ name, avatarUrl });
-      setUser(updated);
-      toast.success("Perfil atualizado!");
 
+      const updated = await updateProfile({ name, avatarUrl });
+
+      // 🔥 garante avatar correto
+      const finalUser = {
+        id: updated.id,
+        name: updated.name,
+        email: updated.email,
+        avatarUrl: avatarUrl, // usa o state, não o retorno bugado
+      };
+
+      setUser(finalUser);
+
+      localStorage.setItem("user", JSON.stringify(finalUser));
+
+      // força atualização
+      window.location.reload();
+
+      setUser(updated);
+
+      // 🔥 salva no localStorage (igual você já fazia)
       localStorage.setItem(
         "user",
         JSON.stringify({
@@ -46,6 +63,11 @@ export default function Profile() {
           avatarUrl: updated.avatarUrl,
         }),
       );
+
+      // 🔥 FORÇA atualização no AppLayout (ESSA É A CORREÇÃO)
+      window.dispatchEvent(new Event("storage"));
+
+      toast.success("Perfil atualizado!");
     } catch {
       toast.error("Erro ao salvar.");
     } finally {
@@ -59,8 +81,11 @@ export default function Profile() {
 
     try {
       setUploading(true);
+
       const { url } = await uploadAvatar(file);
+
       setAvatarUrl(url);
+
       toast.success("Foto enviada!");
     } catch (err: any) {
       console.error(err);

@@ -31,9 +31,6 @@ export default function Login() {
       // 👇 mantém isso também
       localStorage.setItem("user", JSON.stringify(data.user));
 
-      toast.success("Login realizado!");
-      navigate("/dashboard");
-
       // 1) salva token
       localStorage.setItem("user", JSON.stringify(data.user));
 
