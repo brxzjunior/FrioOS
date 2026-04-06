@@ -1,8 +1,22 @@
-// src/services/user.service.ts
 import { get, run } from "../database/db";
 
 export async function getUserByEmail(email: string) {
   return get(`SELECT * FROM users WHERE email = ?`, [email]);
+}
+
+export async function createUser(data: {
+  id: string;
+  name: string;
+  email: string;
+  avatarUrl?: string | null;
+}) {
+  await run(
+    `INSERT INTO users (id, name, email, avatarUrl)
+     VALUES (?, ?, ?, ?)`,
+    [data.id, data.name, data.email, data.avatarUrl || null],
+  );
+
+  return getUserByEmail(data.email);
 }
 
 export async function saveResetToken(
@@ -31,7 +45,6 @@ export async function clearResetToken(userId: string) {
   );
 }
 
-// já existentes:
 export async function getUserById(id: string) {
   return get(
     `SELECT id, name, email, avatarUrl 
