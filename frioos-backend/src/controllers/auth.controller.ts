@@ -4,6 +4,7 @@ import jwt from "jsonwebtoken";
 import { randomUUID } from "crypto";
 import { get, run } from "../database/db";
 import { sendEmail } from "../utils/sendEmail";
+import { isValidEmail, isBlockedEmail } from "../utils/validators";
 
 // reset senha
 import { generateResetToken } from "../utils/generateResetToken";
@@ -30,8 +31,14 @@ export async function signup(req: Request, res: Response) {
       return res.status(400).json({ message: "Nome inválido" });
     }
 
-    if (!email || !email.includes("@")) {
+    const normalizedEmail = email?.toLowerCase().trim();
+
+    if (!normalizedEmail || !isValidEmail(normalizedEmail)) {
       return res.status(400).json({ message: "Email inválido" });
+    }
+
+    if (isBlockedEmail(normalizedEmail)) {
+      return res.status(400).json({ message: "Email não permitido" });
     }
 
     if (!password || password.length < 6) {
@@ -40,7 +47,7 @@ export async function signup(req: Request, res: Response) {
 
     const existing = await get<{ id: string }>(
       `SELECT id FROM users WHERE email = ?`,
-      [email.toLowerCase().trim()],
+      [normalizedEmail],
     );
 
     if (existing) {
@@ -50,7 +57,7 @@ export async function signup(req: Request, res: Response) {
     const user = {
       id: randomUUID(),
       name: name.trim(),
-      email: email.toLowerCase().trim(),
+      email: normalizedEmail,
       passwordHash: await bcrypt.hash(password, 10),
       avatarUrl: null,
       createdAt: new Date().toISOString(),
@@ -99,6 +106,12 @@ export async function login(req: Request, res: Response) {
       });
     }
 
+    const normalizedEmail = email.toLowerCase().trim();
+
+    if (!isValidEmail(normalizedEmail)) {
+      return res.status(400).json({ message: "Email inválido" });
+    }
+
     const user = await get<{
       id: string;
       name: string;
@@ -106,7 +119,7 @@ export async function login(req: Request, res: Response) {
       passwordHash: string;
       avatarUrl?: string;
     }>(`SELECT id, name, email, passwordHash FROM users WHERE email = ?`, [
-      email.toLowerCase().trim(),
+      normalizedEmail,
     ]);
 
     if (!user) {
