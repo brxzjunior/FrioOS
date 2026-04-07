@@ -1,8 +1,15 @@
+// src/pages/Orders.tsx
+// ─────────────────────────────────────────────────────────────
+// Página de gerenciamento de Ordens de Serviço.
+// Cards colapsáveis com filtro por status, edição inline,
+// controle de pagamento e ações rápidas.
+// ─────────────────────────────────────────────────────────────
 import { useEffect, useMemo, useState } from "react";
 import { getClients, type Client } from "../services/clientService";
 import {
   getOrders,
   updateOrderStatus,
+  updateOrderPago,
   deleteOrder,
   updateOrder,
   type Order,
@@ -12,10 +19,15 @@ import {
 import { generateOrderPdf } from "../utils/orderPdf";
 import toast from "react-hot-toast";
 
-// ── Constantes visuais ────────────────────────────────────
+// ── Configuração visual de status ─────────────────────────────
 const STATUS_CONFIG: Record<
   OrderStatus,
-  { label: string; color: string; bg: string; border: string }
+  {
+    label: string;
+    color: string;
+    bg: string;
+    border: string;
+  }
 > = {
   ABERTA: {
     label: "Aberta",
@@ -37,6 +49,7 @@ const STATUS_CONFIG: Record<
   },
 };
 
+// ── Labels de tipo de serviço ─────────────────────────────────
 const TIPO_LABELS: Record<string, string> = {
   INSTALACAO: "Instalação",
   MANUTENCAO: "Manutenção",
@@ -44,10 +57,12 @@ const TIPO_LABELS: Record<string, string> = {
   RETIRADA: "Retirada",
 };
 
+// ── Helpers ───────────────────────────────────────────────────
 function formatBRL(v: number) {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
+// ── Sub-componente: badge de status ───────────────────────────
 function StatusBadge({ status }: { status: OrderStatus }) {
   const s = STATUS_CONFIG[status];
   return (
@@ -80,15 +95,44 @@ function StatusBadge({ status }: { status: OrderStatus }) {
   );
 }
 
-// ── Componente principal ──────────────────────────────────
+// ── Sub-componente: badge de pagamento ────────────────────────
+function PagoBadge({ pago }: { pago: boolean }) {
+  return (
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 4,
+        padding: "3px 10px",
+        borderRadius: 99,
+        fontSize: 11,
+        fontWeight: 600,
+        color: pago ? "#34d399" : "#9ca3af",
+        background: pago ? "rgba(52,211,153,0.1)" : "rgba(156,163,175,0.08)",
+        border: pago
+          ? "1px solid rgba(52,211,153,0.3)"
+          : "1px solid rgba(156,163,175,0.2)",
+        whiteSpace: "nowrap",
+      }}
+    >
+      {pago ? "💚 Pago" : "⏳ Pendente"}
+    </span>
+  );
+}
+
+// ── Componente principal ──────────────────────────────────────
 export default function Orders() {
-  const [statusFilter, setStatusFilter] = useState<OrderStatus | "ALL">("ALL");
+  // ── Estado da lista ────────────────────────────────────────
   const [orders, setOrders] = useState<Order[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
+  // ── Filtro ─────────────────────────────────────────────────
+  const [statusFilter, setStatusFilter] = useState<OrderStatus | "ALL">("ALL");
+
+  // ── Modal de edição ────────────────────────────────────────
   const [editingOrder, setEditingOrder] = useState<Order | null>(null);
   const [editTipo, setEditTipo] = useState<OrderTipo>("MANUTENCAO");
   const [editDescricao, setEditDescricao] = useState("");
@@ -97,6 +141,7 @@ export default function Orders() {
   const [editScheduledFor, setEditScheduledFor] = useState("");
   const [savingEdit, setSavingEdit] = useState(false);
 
+  // ── Map de clientes para lookup O(1) ──────────────────────
   const clientMap = useMemo(() => {
     const map = new Map<string, Client>();
     clients.forEach((c) => map.set(c.id, c));
@@ -107,6 +152,7 @@ export default function Orders() {
     loadAll();
   }, []);
 
+  // ── Carrega ordens e clientes em paralelo ─────────────────
   async function loadAll() {
     try {
       setLoading(true);
@@ -123,6 +169,7 @@ export default function Orders() {
     }
   }
 
+  // ── Atualiza status do serviço ────────────────────────────
   async function handleStatusChange(id: string, status: OrderStatus) {
     try {
       setUpdatingId(id);
@@ -136,6 +183,37 @@ export default function Orders() {
     }
   }
 
+  // ── Toggle de pagamento ───────────────────────────────────
+  /**
+   * Inverte o estado de pagamento da OS.
+   * Se estiver paga → marca como pendente (com confirmação).
+   * Se estiver pendente → marca como paga.
+   */
+  async function handleTogglePago(order: Order) {
+    const novoPago = !order.pago;
+
+    // Pede confirmação ao estornar um pagamento já registrado
+    if (
+      !novoPago &&
+      !confirm(`Marcar "${TIPO_LABELS[order.tipo]}" como não paga?`)
+    )
+      return;
+
+    try {
+      setUpdatingId(order.id);
+      const updated = await updateOrderPago(order.id, novoPago);
+      setOrders((prev) => prev.map((o) => (o.id === updated.id ? updated : o)));
+      toast.success(
+        novoPago ? "OS marcada como paga! 💚" : "Pagamento removido.",
+      );
+    } catch {
+      toast.error("Erro ao atualizar pagamento.");
+    } finally {
+      setUpdatingId(null);
+    }
+  }
+
+  // ── Exclusão ──────────────────────────────────────────────
   async function handleDelete(id: string) {
     if (!confirm("Excluir esta OS?")) return;
     try {
@@ -147,12 +225,14 @@ export default function Orders() {
     }
   }
 
+  // ── PDF individual ────────────────────────────────────────
   function handleGeneratePdf(order: Order) {
     const client = clientMap.get(order.clientId);
     generateOrderPdf(order, client);
     toast.success("PDF gerado.");
   }
 
+  // ── Lembrete Google Calendar ──────────────────────────────
   function openGoogleReminder(order: Order) {
     const client = clientMap.get(order.clientId);
     const title = encodeURIComponent(
@@ -184,6 +264,7 @@ export default function Orders() {
     );
   }
 
+  // ── Abre modal de edição com dados atuais da OS ───────────
   function startEdit(order: Order) {
     setEditingOrder(order);
     setEditTipo(order.tipo);
@@ -195,6 +276,7 @@ export default function Orders() {
     );
   }
 
+  // ── Salva edição ──────────────────────────────────────────
   async function handleSaveEdit() {
     if (!editingOrder) return;
     if (!editDescricao.trim()) {
@@ -205,6 +287,7 @@ export default function Orders() {
       toast.error("Valor inválido.");
       return;
     }
+
     try {
       setSavingEdit(true);
       const updated = await updateOrder(editingOrder.id, {
@@ -224,12 +307,13 @@ export default function Orders() {
     }
   }
 
+  // ── Dados derivados ───────────────────────────────────────
   const visibleOrders =
     statusFilter === "ALL"
       ? orders
       : orders.filter((o) => o.status === statusFilter);
 
-  // contadores para os filtros
+  // Contadores para os pills de filtro
   const counts = useMemo(
     () => ({
       ALL: orders.length,
@@ -240,6 +324,7 @@ export default function Orders() {
     [orders],
   );
 
+  // ── Render ────────────────────────────────────────────────
   return (
     <div className="main">
       {/* CABEÇALHO */}
@@ -294,10 +379,10 @@ export default function Orders() {
                   marginLeft: 6,
                   padding: "1px 6px",
                   borderRadius: 99,
+                  fontSize: 11,
                   background: active
                     ? (sc?.border ?? "rgba(45,212,191,0.3)")
                     : "var(--border)",
-                  fontSize: 11,
                 }}
               >
                 {counts[f]}
@@ -307,7 +392,7 @@ export default function Orders() {
         })}
       </div>
 
-      {/* LISTA */}
+      {/* LISTA DE OS */}
       {loading ? (
         <p>Carregando...</p>
       ) : visibleOrders.length === 0 ? (
@@ -328,11 +413,12 @@ export default function Orders() {
                 className="card"
                 style={{
                   marginBottom: 0,
-                  borderLeft: `3px solid ${sc.color}`,
+                  // borda esquerda: verde se pago, cor do status se não
+                  borderLeft: `3px solid ${o.pago ? "#34d399" : sc.color}`,
                   transition: "border-color 0.2s",
                 }}
               >
-                {/* LINHA PRINCIPAL — sempre visível */}
+                {/* ── LINHA PRINCIPAL (sempre visível, clicável) ── */}
                 <div
                   style={{
                     display: "flex",
@@ -343,7 +429,7 @@ export default function Orders() {
                   }}
                   onClick={() => setExpandedId(expanded ? null : o.id)}
                 >
-                  {/* tipo + cliente */}
+                  {/* tipo + status + pagamento */}
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div
                       style={{
@@ -363,6 +449,8 @@ export default function Orders() {
                         {TIPO_LABELS[o.tipo] ?? o.tipo}
                       </span>
                       <StatusBadge status={o.status} />
+                      {/* Badge de pagamento sempre visível na linha principal */}
+                      <PagoBadge pago={o.pago} />
                     </div>
                     <div
                       style={{
@@ -396,7 +484,8 @@ export default function Orders() {
                       style={{
                         fontWeight: 700,
                         fontSize: 15,
-                        color: "var(--accent)",
+                        // valor em verde se pago, accent se pendente
+                        color: o.pago ? "#34d399" : "var(--accent)",
                       }}
                     >
                       {formatBRL(o.valor)}
@@ -405,9 +494,9 @@ export default function Orders() {
                       style={{
                         color: "var(--muted)",
                         fontSize: 12,
-                        transition: "transform 0.2s",
                         transform: expanded ? "rotate(180deg)" : "rotate(0deg)",
                         display: "inline-block",
+                        transition: "transform 0.2s",
                       }}
                     >
                       ▾
@@ -415,7 +504,7 @@ export default function Orders() {
                   </div>
                 </div>
 
-                {/* DETALHES EXPANDIDOS */}
+                {/* ── DETALHES EXPANDIDOS ── */}
                 {expanded && (
                   <div
                     style={{
@@ -424,7 +513,7 @@ export default function Orders() {
                       borderTop: "1px solid var(--border)",
                     }}
                   >
-                    {/* descrição e obs */}
+                    {/* Descrição */}
                     {o.descricao && (
                       <div style={{ marginBottom: 8 }}>
                         <span
@@ -448,6 +537,8 @@ export default function Orders() {
                         </p>
                       </div>
                     )}
+
+                    {/* Observações */}
                     {o.obs && (
                       <div style={{ marginBottom: 12 }}>
                         <span
@@ -481,7 +572,7 @@ export default function Orders() {
                         alignItems: "center",
                       }}
                     >
-                      {/* status inline */}
+                      {/* Seletor de status do serviço */}
                       <select
                         className="input"
                         style={{ maxWidth: 150, marginTop: 0, fontSize: 13 }}
@@ -499,6 +590,7 @@ export default function Orders() {
                         <option value="FINALIZADA">Finalizada</option>
                       </select>
 
+                      {/* Botão de edição */}
                       <button
                         className="button"
                         style={{ padding: "8px 14px", fontSize: 13 }}
@@ -506,6 +598,38 @@ export default function Orders() {
                       >
                         ✏️ Editar
                       </button>
+
+                      {/* ✅ BOTÃO DE PAGAMENTO
+                          - Verde escuro com ✓ quando pago (clique = estornar)
+                          - Cinza com $ quando pendente (clique = marcar como pago) */}
+                      <button
+                        onClick={() => handleTogglePago(o)}
+                        disabled={updatingId === o.id}
+                        style={{
+                          padding: "8px 14px",
+                          fontSize: 13,
+                          borderRadius: 8,
+                          cursor: "pointer",
+                          minHeight: 44,
+                          border: o.pago
+                            ? "1px solid rgba(52,211,153,0.4)"
+                            : "1px solid rgba(251,191,36,0.4)",
+                          background: o.pago
+                            ? "rgba(52,211,153,0.1)"
+                            : "rgba(251,191,36,0.08)",
+                          color: o.pago ? "#34d399" : "#fbbf24",
+                          fontWeight: 600,
+                          transition: "all 0.15s",
+                        }}
+                      >
+                        {updatingId === o.id
+                          ? "..."
+                          : o.pago
+                            ? "✓ Pago"
+                            : "$ Marcar Pago"}
+                      </button>
+
+                      {/* PDF */}
                       <button
                         className="button"
                         style={{ padding: "8px 14px", fontSize: 13 }}
@@ -513,6 +637,8 @@ export default function Orders() {
                       >
                         📄 PDF
                       </button>
+
+                      {/* Lembrete */}
                       <button
                         className="button"
                         style={{ padding: "8px 14px", fontSize: 13 }}
@@ -520,6 +646,8 @@ export default function Orders() {
                       >
                         📅 Lembrete
                       </button>
+
+                      {/* Excluir */}
                       <button
                         onClick={() => handleDelete(o.id)}
                         style={{
@@ -544,7 +672,7 @@ export default function Orders() {
         </div>
       )}
 
-      {/* MODAL EDITAR */}
+      {/* MODAL DE EDIÇÃO */}
       {editingOrder && (
         <div className="modal-overlay">
           <div className="modal-box">

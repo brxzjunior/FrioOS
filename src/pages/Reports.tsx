@@ -1,3 +1,10 @@
+// src/pages/Reports.tsx
+// ─────────────────────────────────────────────────────────────
+// Página de relatórios com 3 abas: Tabela, Gráficos e Resumo.
+// Exporta CSV (compatível com Excel) e PDF consolidado.
+// KPIs consideram o campo `pago` para separar faturamento
+// realizado de valor pendente de recebimento.
+// ─────────────────────────────────────────────────────────────
 import React, { useEffect, useMemo, useState } from "react";
 import {
   getOrders,
@@ -11,10 +18,10 @@ import { generateOrderPdf } from "../utils/orderPdf";
 import jsPDF from "jspdf";
 import toast from "react-hot-toast";
 
-// ── Tipos ─────────────────────────────────────────────────
+// ── Tipos ─────────────────────────────────────────────────────
 type OrderStatusFilter = "ALL" | OrderStatus;
 
-// ── Constantes ────────────────────────────────────────────
+// ── Configuração de cores por status ──────────────────────────
 const STATUS_CONFIG: Record<
   string,
   { label: string; color: string; bg: string; border: string }
@@ -39,6 +46,7 @@ const STATUS_CONFIG: Record<
   },
 };
 
+// ── Labels de tipo de serviço ─────────────────────────────────
 const TIPO_LABELS: Record<string, string> = {
   INSTALACAO: "Instalação",
   MANUTENCAO: "Manutenção",
@@ -46,7 +54,9 @@ const TIPO_LABELS: Record<string, string> = {
   RETIRADA: "Retirada",
 };
 
-// ── Helpers ───────────────────────────────────────────────
+const COLORS = ["#2dd4bf", "#60a5fa", "#fbbf24", "#f87171"];
+
+// ── Helpers de formatação ─────────────────────────────────────
 function formatBRL(v: number) {
   return Number(v).toLocaleString("pt-BR", {
     style: "currency",
@@ -68,7 +78,7 @@ function formatMonth(mes: string) {
   });
 }
 
-// ── Mini componentes ──────────────────────────────────────
+// ── Sub-componente: KPI card ──────────────────────────────────
 function KpiCard({
   label,
   value,
@@ -102,6 +112,7 @@ function KpiCard({
   );
 }
 
+// ── Sub-componente: gráfico de barras horizontais ─────────────
 function BarChart({
   data,
   maxVal,
@@ -154,15 +165,16 @@ function BarChart({
   );
 }
 
-// ── Página principal ──────────────────────────────────────
+// ── Componente principal ──────────────────────────────────────
 export default function Reports() {
+  // ── Estado de dados ────────────────────────────────────────
   const [orders, setOrders] = useState<Order[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [revenue, setRevenue] = useState<any[]>([]);
   const [services, setServices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // filtros
+  // ── Filtros ────────────────────────────────────────────────
   const [statusFilter, setStatusFilter] = useState<OrderStatusFilter>("ALL");
   const [clientFilter, setClientFilter] = useState("");
   const [startDate, setStartDate] = useState("");
@@ -170,9 +182,10 @@ export default function Reports() {
   const [page, setPage] = useState(1);
   const pageSize = 10;
 
-  // tab ativa
-  const [tab, setTab] = useState<"tabela" | "resumo" | "graficos">("tabela");
+  // ── Tab ativa ─────────────────────────────────────────────
+  const [tab, setTab] = useState<"tabela" | "graficos" | "resumo">("tabela");
 
+  // ── Carga inicial de dados ────────────────────────────────
   useEffect(() => {
     async function load() {
       try {
@@ -195,17 +208,19 @@ export default function Reports() {
     load();
   }, []);
 
+  // ── Map de clientes para lookup O(1) ──────────────────────
   const clientMap = useMemo(() => {
     const m = new Map<string, Client>();
     clients.forEach((c) => m.set(c.id, c));
     return m;
   }, [clients]);
 
-  // ── Filtragem ────────────────────────────────────────────
+  // ── Filtragem por status, cliente e datas ─────────────────
   const filteredOrders = useMemo(() => {
     return orders.filter((o) => {
       if (statusFilter !== "ALL" && o.status !== statusFilter) return false;
       if (clientFilter && o.clientId !== clientFilter) return false;
+      // Comparação por string YYYY-MM-DD evita problemas de timezone
       const d = o.scheduledFor ?? "";
       if (startDate && d && d < startDate) return false;
       if (endDate && d && d > endDate) return false;
@@ -219,18 +234,42 @@ export default function Reports() {
     page * pageSize,
   );
 
-  // ── KPIs do filtro atual ──────────────────────────────────
+  // ── KPIs calculados sobre o filtro atual ──────────────────
   const kpis = useMemo(() => {
     const total = filteredOrders.length;
+
+    // Valor total de OS finalizadas (independe de pagamento)
     const faturamento = filteredOrders
       .filter((o) => o.status === "FINALIZADA")
       .reduce((s, o) => s + Number(o.valor), 0);
+
+    // ✅ Valor efetivamente recebido (finalizadas E pagas)
+    const recebido = filteredOrders
+      .filter((o) => o.pago)
+      .reduce((s, o) => s + Number(o.valor), 0);
+
+    // ✅ Valor pendente de recebimento (não pagas)
+    const aReceber = filteredOrders
+      .filter((o) => !o.pago)
+      .reduce((s, o) => s + Number(o.valor), 0);
+
     const abertas = filteredOrders.filter((o) => o.status === "ABERTA").length;
     const finalizadas = filteredOrders.filter(
       (o) => o.status === "FINALIZADA",
     ).length;
+    const pagas = filteredOrders.filter((o) => o.pago).length;
     const ticketMedio = finalizadas > 0 ? faturamento / finalizadas : 0;
-    return { total, faturamento, abertas, finalizadas, ticketMedio };
+
+    return {
+      total,
+      faturamento,
+      recebido,
+      aReceber,
+      abertas,
+      finalizadas,
+      pagas,
+      ticketMedio,
+    };
   }, [filteredOrders]);
 
   function handleClear() {
@@ -242,12 +281,17 @@ export default function Reports() {
   }
 
   // ── Exportar CSV ──────────────────────────────────────────
+  /**
+   * Gera CSV com BOM UTF-8 para compatibilidade com Excel.
+   * Inclui coluna "Pago" para controle financeiro.
+   */
   function exportCSV() {
     const header = [
       "ID",
       "Cliente",
       "Tipo",
       "Status",
+      "Pago",
       "Valor",
       "Data Serviço",
       "Criado em",
@@ -261,6 +305,7 @@ export default function Reports() {
         c?.nome ?? "-",
         TIPO_LABELS[o.tipo] ?? o.tipo,
         o.status,
+        o.pago ? "Sim" : "Não", // ✅ campo pago no CSV
         Number(o.valor).toFixed(2).replace(".", ","),
         formatDateBR(o.scheduledFor),
         formatDateBR(o.createdAt),
@@ -270,7 +315,7 @@ export default function Reports() {
     });
 
     const csv = [header.join(";"), ...rows].join("\n");
-    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" }); // BOM para Excel
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -280,12 +325,12 @@ export default function Reports() {
     toast.success("Planilha exportada.");
   }
 
-  // ── Exportar PDF do relatório consolidado ─────────────────
+  // ── Exportar PDF consolidado ──────────────────────────────
   function exportRelatorioPDF() {
     const doc = new jsPDF({ unit: "mm", format: "a4" });
-    const W = 210;
-    const ml = 14;
-    const iW = W - ml * 2;
+    const W = 210,
+      ml = 14,
+      iW = W - ml * 2;
     const P = [0, 80, 160] as [number, number, number];
     const AC = [0, 160, 230] as [number, number, number];
     const WH = [255, 255, 255] as [number, number, number];
@@ -293,12 +338,11 @@ export default function Reports() {
     const DK = [30, 30, 30] as [number, number, number];
     const LT = [240, 245, 250] as [number, number, number];
 
-    // header
+    // Cabeçalho
     doc.setFillColor(...P);
     doc.rect(0, 0, W, 34, "F");
     doc.setFillColor(...AC);
     doc.rect(0, 34, W, 3, "F");
-
     doc.setTextColor(...WH);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(18);
@@ -315,48 +359,45 @@ export default function Reports() {
 
     let y = 46;
 
-    // KPIs
+    // KPIs no PDF — inclui Recebido e A Receber
     doc.setFillColor(...LT);
-    doc.roundedRect(ml, y, iW, 28, 2, 2, "F");
+    doc.roundedRect(ml, y, iW, 36, 2, 2, "F");
 
-    const cols = [
+    const kpiCols = [
       ml + 4,
-      ml + iW / 4 + 4,
-      ml + iW / 2 + 4,
-      ml + (iW * 3) / 4 + 4,
+      ml + iW / 4 + 2,
+      ml + iW / 2 + 2,
+      ml + (iW * 3) / 4 + 2,
     ];
     const kpiData = [
       { l: "Total OS", v: String(kpis.total) },
-      { l: "Faturamento", v: formatBRL(kpis.faturamento) },
-      { l: "Abertas", v: String(kpis.abertas) },
+      { l: "Recebido", v: formatBRL(kpis.recebido) }, // ✅
+      { l: "A Receber", v: formatBRL(kpis.aReceber) }, // ✅
       { l: "Ticket Médio", v: formatBRL(kpis.ticketMedio) },
     ];
-
     kpiData.forEach((k, i) => {
       doc.setFont("helvetica", "bold");
       doc.setFontSize(7);
       doc.setTextColor(...GR);
-      doc.text(k.l.toUpperCase(), cols[i], y + 8);
+      doc.text(k.l.toUpperCase(), kpiCols[i], y + 9);
       doc.setFont("helvetica", "bold");
       doc.setFontSize(11);
       doc.setTextColor(...P);
-      doc.text(k.v, cols[i], y + 18);
+      doc.text(k.v, kpiCols[i], y + 22);
     });
 
-    y += 36;
+    y += 44;
 
-    // faturamento por mês
+    // Gráfico de barras de faturamento mensal
     if (revenue.length > 0) {
       doc.setFont("helvetica", "bold");
       doc.setFontSize(10);
       doc.setTextColor(...P);
       doc.text("FATURAMENTO POR MÊS", ml, y);
       y += 4;
-
       const maxR = Math.max(...revenue.map((r) => Number(r.total)));
       const barW = iW / Math.min(revenue.length, 8);
-      const barMaxH = 20;
-
+      const barMaxH = 18;
       [...revenue]
         .reverse()
         .slice(0, 8)
@@ -371,43 +412,42 @@ export default function Reports() {
             align: "center",
           });
         });
-
-      y += barMaxH + 10;
+      y += barMaxH + 12;
     }
 
-    // tabela de OS
-    y += 4;
+    // Tabela de OS
     doc.setFont("helvetica", "bold");
     doc.setFontSize(10);
     doc.setTextColor(...P);
     doc.text("ORDENS DE SERVIÇO", ml, y);
     y += 5;
 
-    // cabeçalho tabela
     doc.setFillColor(...P);
     doc.rect(ml, y, iW, 6, "F");
     doc.setTextColor(...WH);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(7);
+    // ✅ Coluna "Pago" adicionada
     const cols2 = [
       ml + 1,
       ml + 14,
-      ml + 50,
-      ml + 82,
-      ml + 110,
-      ml + 135,
-      ml + 158,
+      ml + 48,
+      ml + 78,
+      ml + 104,
+      ml + 118,
+      ml + 140,
+      ml + 160,
     ];
-    const headers = [
+    [
       "ID",
       "Cliente",
       "Tipo",
       "Status",
+      "Pago",
       "Valor",
       "Data",
       "Criado",
-    ];
-    headers.forEach((h, i) => doc.text(h, cols2[i], y + 4));
+    ].forEach((h, i) => doc.text(h, cols2[i], y + 4));
     y += 7;
 
     filteredOrders.slice(0, 40).forEach((o, idx) => {
@@ -423,16 +463,16 @@ export default function Reports() {
       doc.setFontSize(7);
       doc.setTextColor(...DK);
       const cl = clientMap.get(o.clientId);
-      const row = [
+      [
         o.id.slice(0, 6),
-        (cl?.nome ?? "-").slice(0, 18),
-        (TIPO_LABELS[o.tipo] ?? o.tipo).slice(0, 12),
+        (cl?.nome ?? "-").slice(0, 16),
+        (TIPO_LABELS[o.tipo] ?? o.tipo).slice(0, 10),
         o.status,
+        o.pago ? "Sim" : "Nao", // ✅
         formatBRL(Number(o.valor)),
         formatDateBR(o.scheduledFor),
         formatDateBR(o.createdAt),
-      ];
-      row.forEach((v, i) => doc.text(v, cols2[i], y + 3));
+      ].forEach((v, i) => doc.text(v, cols2[i], y + 3));
       y += 6;
     });
 
@@ -446,7 +486,7 @@ export default function Reports() {
       );
     }
 
-    // rodapé
+    // Rodapé
     doc.setFillColor(...P);
     doc.rect(0, 285, W, 12, "F");
     doc.setTextColor(...WH);
@@ -457,11 +497,12 @@ export default function Reports() {
     });
 
     doc.save(`FrioOS_Relatorio_${new Date().toISOString().slice(0, 10)}.pdf`);
-    toast.success("PDF do relatório exportado.");
+    toast.success("PDF exportado.");
   }
 
   if (loading) return <div className="main">Carregando...</div>;
 
+  // Dados para os gráficos
   const revenueChartData = [...revenue]
     .reverse()
     .slice(-6)
@@ -471,17 +512,15 @@ export default function Reports() {
       sub: formatBRL(r.total),
     }));
   const maxRevenue = Math.max(...revenueChartData.map((d) => d.value), 1);
-
   const servicesChartData = services.map((s) => ({
     label: TIPO_LABELS[s.tipo] ?? s.tipo,
     value: Number(s.total),
   }));
   const maxServices = Math.max(...servicesChartData.map((d) => d.value), 1);
-  const COLORS = ["#2dd4bf", "#60a5fa", "#fbbf24", "#f87171"];
 
   return (
     <div className="main">
-      {/* CABEÇALHO */}
+      {/* CABEÇALHO + EXPORTAÇÕES */}
       <div
         style={{
           display: "flex",
@@ -498,8 +537,6 @@ export default function Reports() {
             {filteredOrders.length} OS no período selecionado
           </p>
         </div>
-
-        {/* botões de exportação */}
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <button
             onClick={exportCSV}
@@ -536,11 +573,11 @@ export default function Reports() {
         </div>
       </div>
 
-      {/* KPI CARDS */}
+      {/* KPI CARDS — 6 cards incluindo recebido e a receber */}
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
+          gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))",
           gap: 10,
           marginBottom: 20,
         }}
@@ -551,20 +588,32 @@ export default function Reports() {
           color="var(--accent)"
         />
         <KpiCard
-          label="Faturamento"
-          value={formatBRL(kpis.faturamento)}
-          color="var(--accent2)"
-          sub="OS finalizadas"
+          label="Finalizadas"
+          value={String(kpis.finalizadas)}
+          color="#2dd4bf"
         />
         <KpiCard
-          label="Em Aberto"
-          value={String(kpis.abertas)}
-          color="var(--danger)"
+          label="Pagas"
+          value={String(kpis.pagas)}
+          color="#34d399"
+          sub={`de ${kpis.total}`}
+        />
+        <KpiCard
+          label="Recebido"
+          value={formatBRL(kpis.recebido)}
+          color="#34d399"
+          sub="valor pago"
+        />
+        <KpiCard
+          label="A Receber"
+          value={formatBRL(kpis.aReceber)}
+          color="var(--warn)"
+          sub="não pago ainda"
         />
         <KpiCard
           label="Ticket Médio"
           value={formatBRL(kpis.ticketMedio)}
-          color="var(--warn)"
+          color="var(--accent)"
         />
       </div>
 
@@ -593,7 +642,6 @@ export default function Reports() {
             Limpar tudo
           </button>
         </div>
-
         <div
           style={{
             display: "grid",
@@ -601,7 +649,7 @@ export default function Reports() {
             gap: 10,
           }}
         >
-          {/* status pills */}
+          {/* Pills de status */}
           <div>
             <span
               style={{
@@ -649,7 +697,7 @@ export default function Reports() {
             </div>
           </div>
 
-          {/* cliente */}
+          {/* Filtro de cliente */}
           <div className="field" style={{ marginBottom: 0 }}>
             <span>CLIENTE</span>
             <select
@@ -670,7 +718,7 @@ export default function Reports() {
             </select>
           </div>
 
-          {/* datas */}
+          {/* Filtro de datas */}
           <div className="field" style={{ marginBottom: 0 }}>
             <span>DATA INICIAL</span>
             <input
@@ -707,7 +755,6 @@ export default function Reports() {
           gap: 4,
           marginBottom: 16,
           borderBottom: "1px solid var(--border)",
-          paddingBottom: 0,
         }}
       >
         {(
@@ -748,9 +795,7 @@ export default function Reports() {
             {filteredOrders.length === 0 ? (
               <div style={{ padding: 40, textAlign: "center" }}>
                 <p style={{ fontSize: 32, margin: "0 0 8px" }}>📋</p>
-                <p style={{ margin: 0 }}>
-                  Nenhuma OS encontrada para os filtros selecionados.
-                </p>
+                <p style={{ margin: 0 }}>Nenhuma OS encontrada.</p>
               </div>
             ) : (
               <div className="table-wrapper">
@@ -758,7 +803,7 @@ export default function Reports() {
                   style={{
                     width: "100%",
                     borderCollapse: "collapse",
-                    minWidth: 620,
+                    minWidth: 680,
                   }}
                 >
                   <thead>
@@ -768,6 +813,7 @@ export default function Reports() {
                         "Cliente",
                         "Tipo",
                         "Status",
+                        "Pago",
                         "Valor",
                         "Data",
                         "PDF",
@@ -791,7 +837,7 @@ export default function Reports() {
                     </tr>
                   </thead>
                   <tbody>
-                    {paginatedOrders.map((o, i) => {
+                    {paginatedOrders.map((o) => {
                       const cl = clientMap.get(o.clientId);
                       const sc = STATUS_CONFIG[o.status];
                       return (
@@ -824,7 +870,7 @@ export default function Reports() {
                               padding: "10px 12px",
                               fontSize: 13,
                               color: "var(--text)",
-                              maxWidth: 140,
+                              maxWidth: 130,
                               overflow: "hidden",
                               textOverflow: "ellipsis",
                               whiteSpace: "nowrap",
@@ -857,11 +903,32 @@ export default function Reports() {
                               {sc.label}
                             </span>
                           </td>
+                          {/* ✅ Coluna de pagamento na tabela */}
+                          <td style={{ padding: "10px 12px" }}>
+                            <span
+                              style={{
+                                padding: "3px 9px",
+                                borderRadius: 99,
+                                fontSize: 11,
+                                fontWeight: 600,
+                                whiteSpace: "nowrap",
+                                color: o.pago ? "#34d399" : "#9ca3af",
+                                background: o.pago
+                                  ? "rgba(52,211,153,0.1)"
+                                  : "rgba(156,163,175,0.08)",
+                                border: o.pago
+                                  ? "1px solid rgba(52,211,153,0.3)"
+                                  : "1px solid rgba(156,163,175,0.2)",
+                              }}
+                            >
+                              {o.pago ? "💚 Pago" : "⏳ Pendente"}
+                            </span>
+                          </td>
                           <td
                             style={{
                               padding: "10px 12px",
                               fontSize: 13,
-                              color: "var(--accent2)",
+                              color: o.pago ? "#34d399" : "var(--accent2)",
                               fontWeight: 600,
                               whiteSpace: "nowrap",
                             }}
@@ -908,7 +975,7 @@ export default function Reports() {
             )}
           </div>
 
-          {/* paginação */}
+          {/* Paginação numérica */}
           {totalPages > 1 && (
             <div className="pagination" style={{ marginTop: 12 }}>
               <button
@@ -961,13 +1028,12 @@ export default function Reports() {
             gap: 14,
           }}
         >
-          {/* faturamento mensal */}
           <div className="card" style={{ marginBottom: 0 }}>
             <h3 style={{ margin: "0 0 4px", fontSize: 14 }}>
               Faturamento por Mês
             </h3>
             <p style={{ margin: "0 0 16px", fontSize: 12 }}>
-              Últimos 6 meses (OS finalizadas)
+              OS finalizadas — últimos 6 meses
             </p>
             {revenueChartData.length === 0 ? (
               <p>Sem dados.</p>
@@ -980,7 +1046,6 @@ export default function Reports() {
             )}
           </div>
 
-          {/* serviços */}
           <div className="card" style={{ marginBottom: 0 }}>
             <h3 style={{ margin: "0 0 4px", fontSize: 14 }}>
               Serviços Realizados
@@ -999,7 +1064,52 @@ export default function Reports() {
             )}
           </div>
 
-          {/* status donut */}
+          {/* ✅ Gráfico de pagamentos: pago vs pendente */}
+          <div className="card" style={{ marginBottom: 0 }}>
+            <h3 style={{ margin: "0 0 4px", fontSize: 14 }}>
+              Situação de Pagamento
+            </h3>
+            <p style={{ margin: "0 0 16px", fontSize: 12 }}>
+              Recebido vs. a receber
+            </p>
+            <BarChart
+              data={[
+                {
+                  label: "Recebido",
+                  value: kpis.recebido,
+                  sub: formatBRL(kpis.recebido),
+                },
+                {
+                  label: "A Receber",
+                  value: kpis.aReceber,
+                  sub: formatBRL(kpis.aReceber),
+                },
+              ]}
+              maxVal={Math.max(kpis.recebido, kpis.aReceber, 1)}
+              colorFn={(i) => (i === 0 ? "#34d399" : "#fbbf24")}
+            />
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                marginTop: 12,
+                padding: "8px 0",
+                borderTop: "1px solid var(--border)",
+              }}
+            >
+              <span style={{ fontSize: 12, color: "var(--muted)" }}>
+                OS pagas: {kpis.pagas} de {kpis.total}
+              </span>
+              <strong style={{ fontSize: 12, color: "#34d399" }}>
+                {kpis.total > 0
+                  ? Math.round((kpis.pagas / kpis.total) * 100)
+                  : 0}
+                % recebido
+              </strong>
+            </div>
+          </div>
+
+          {/* Donut de status */}
           <div className="card" style={{ marginBottom: 0 }}>
             <h3 style={{ margin: "0 0 16px", fontSize: 14 }}>
               Distribuição de Status
@@ -1030,14 +1140,10 @@ export default function Reports() {
                 const a1 = cum * 2 * Math.PI - Math.PI / 2;
                 cum += pct;
                 const a2 = cum * 2 * Math.PI - Math.PI / 2;
-                const x1 = cx + r * Math.cos(a1),
-                  y1 = cy + r * Math.sin(a1);
-                const x2 = cx + r * Math.cos(a2),
-                  y2 = cy + r * Math.sin(a2);
                 return {
                   ...s,
                   pct,
-                  d: `M ${x1} ${y1} A ${r} ${r} 0 ${pct > 0.5 ? 1 : 0} 1 ${x2} ${y2}`,
+                  d: `M ${cx + r * Math.cos(a1)} ${cy + r * Math.sin(a1)} A ${r} ${r} 0 ${pct > 0.5 ? 1 : 0} 1 ${cx + r * Math.cos(a2)} ${cy + r * Math.sin(a2)}`,
                 };
               });
               return (
@@ -1131,44 +1237,13 @@ export default function Reports() {
               );
             })()}
           </div>
-
-          {/* top clientes */}
-          <div className="card" style={{ marginBottom: 0 }}>
-            <h3 style={{ margin: "0 0 4px", fontSize: 14 }}>Top Clientes</h3>
-            <p style={{ margin: "0 0 16px", fontSize: 12 }}>
-              Por quantidade de OS
-            </p>
-            {(() => {
-              const count = new Map<string, number>();
-              filteredOrders.forEach((o) =>
-                count.set(o.clientId, (count.get(o.clientId) ?? 0) + 1),
-              );
-              const top = [...count.entries()]
-                .sort((a, b) => b[1] - a[1])
-                .slice(0, 5)
-                .map(([id, v]) => ({
-                  label: clientMap.get(id)?.nome ?? "—",
-                  value: v,
-                }));
-              const maxTop = Math.max(...top.map((t) => t.value), 1);
-              return top.length === 0 ? (
-                <p>Sem dados.</p>
-              ) : (
-                <BarChart
-                  data={top}
-                  maxVal={maxTop}
-                  colorFn={(i) => COLORS[i % COLORS.length]}
-                />
-              );
-            })()}
-          </div>
         </div>
       )}
 
       {/* ── TAB: RESUMO ──────────────────────────────────── */}
       {tab === "resumo" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          {/* resumo financeiro */}
+          {/* ✅ Resumo financeiro com breakdown de pagamento */}
           <div className="card" style={{ marginBottom: 0 }}>
             <h3 style={{ margin: "0 0 16px", fontSize: 14 }}>
               💰 Resumo Financeiro
@@ -1180,18 +1255,28 @@ export default function Reports() {
                 color: "var(--accent2)",
               },
               {
+                l: "Efetivamente recebido (pagas)",
+                v: formatBRL(kpis.recebido),
+                color: "#34d399",
+              },
+              {
+                l: "A receber (não pagas)",
+                v: formatBRL(kpis.aReceber),
+                color: "var(--warn)",
+              },
+              {
                 l: "Ticket médio por OS",
                 v: formatBRL(kpis.ticketMedio),
                 color: "var(--accent)",
               },
               {
-                l: "Valor em aberto (abertas + andamento)",
+                l: "Valor em aberto (abertas+andamento)",
                 v: formatBRL(
                   filteredOrders
                     .filter((o) => o.status !== "FINALIZADA")
                     .reduce((s, o) => s + Number(o.valor), 0),
                 ),
-                color: "var(--warn)",
+                color: "var(--danger)",
               },
             ].map((row) => (
               <div
@@ -1211,7 +1296,7 @@ export default function Reports() {
             ))}
           </div>
 
-          {/* resumo por status */}
+          {/* OS por status */}
           <div className="card" style={{ marginBottom: 0 }}>
             <h3 style={{ margin: "0 0 16px", fontSize: 14 }}>
               📋 OS por Status
@@ -1289,7 +1374,7 @@ export default function Reports() {
             })}
           </div>
 
-          {/* resumo por tipo */}
+          {/* OS por tipo */}
           <div className="card" style={{ marginBottom: 0 }}>
             <h3 style={{ margin: "0 0 16px", fontSize: 14 }}>🔧 OS por Tipo</h3>
             {Object.keys(TIPO_LABELS).map((tipo, i) => {
