@@ -79,22 +79,19 @@ export default function AppLayout() {
           }}
         >
           {!collapsed && (
-            <h3
+            <img
+              src="/Frio.svg"
+              alt="FrioOS"
               onClick={() => {
                 navigate("/dashboard");
                 handleNavClick();
               }}
               style={{
-                margin: 0,
+                height: 28,
                 cursor: "pointer",
-                color: "var(--accent)",
-                fontSize: 16,
-                letterSpacing: "0.03em",
-                whiteSpace: "nowrap",
+                objectFit: "contain",
               }}
-            >
-              ❄️ FrioOS
-            </h3>
+            />
           )}
 
           {/* botão toggle — só desktop */}
