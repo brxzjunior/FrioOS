@@ -8,5 +8,9 @@ RUN npm install
 COPY tsconfig.json ./
 COPY src ./src
 
+RUN npm run build
+RUN mkdir -p /data
+
 EXPOSE 3333
-CMD ["npm", "run", "start"]
+
+CMD ["node", "dist/server.js"]
