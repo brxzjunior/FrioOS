@@ -12,7 +12,8 @@ router.post("/avatar", upload.single("avatar"), (req, res) => {
     return res.status(400).json({ message: "Arquivo não enviado" });
   }
 
-  const url = `http://localhost:3333/uploads/${file.filename}`;
+  const BACKEND_URL = process.env.BACKEND_URL || `http://localhost:3333`;
+  const url = `${BACKEND_URL}/uploads/${file.filename}`;
 
   return res.json({ url });
 });

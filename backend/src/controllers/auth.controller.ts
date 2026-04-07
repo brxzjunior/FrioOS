@@ -169,7 +169,8 @@ export async function forgotPassword(req: Request, res: Response) {
 
     await saveResetToken(user.id, token, expires);
 
-    const link = `http://localhost:5173/reset-password?token=${token}`;
+    const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
+    const link = `${FRONTEND_URL}/reset-password?token=${token}`;
 
     await sendEmail(
       email,

@@ -5,7 +5,7 @@
 // KPIs consideram o campo `pago` para separar faturamento
 // realizado de valor pendente de recebimento.
 // ─────────────────────────────────────────────────────────────
-import React, { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   getOrders,
   type Order,

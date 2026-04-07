@@ -4,7 +4,7 @@
 // Cada bloco try/catch de ALTER TABLE é uma migração segura:
 // falha silenciosamente se a coluna já existir.
 // ─────────────────────────────────────────────────────────────
-import { run } from "../database/db";
+import { run } from "./db";
 
 export async function initDb() {
   // ── USERS ──────────────────────────────────────────────────

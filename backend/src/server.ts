@@ -9,7 +9,9 @@ import { generateToken } from "./utils/generateToken";
 import uploadRoutes from "./routes/upload.routes";
 
 const app = express();
-const PORT = 3333;
+const PORT = process.env.PORT || 3333;
+const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
+const BACKEND_URL = process.env.BACKEND_URL || `http://localhost:${PORT}`;
 
 // 🔥 INIT DB
 initDb();
@@ -50,7 +52,7 @@ app.get(
   "/auth/google/callback",
   passport.authenticate("google", {
     session: false,
-    failureRedirect: "http://localhost:5173/login",
+    failureRedirect: `${FRONTEND_URL}/login`,
   }),
   (req, res) => {
     console.log("🔥 CALLBACK GOOGLE");
@@ -59,14 +61,14 @@ app.get(
 
     if (!user) {
       console.log("❌ Usuário não encontrado no callback");
-      return res.redirect("http://localhost:5173/login");
+      return res.redirect(`${FRONTEND_URL}/login`);
     }
 
     const token = generateToken(user);
 
     console.log("✅ TOKEN GERADO");
 
-    res.redirect(`http://localhost:5173/login/success?token=${token}`);
+    res.redirect(`${FRONTEND_URL}/login/success?token=${token}`);
   },
 );
 

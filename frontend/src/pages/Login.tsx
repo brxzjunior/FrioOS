@@ -47,7 +47,10 @@ export default function Login() {
   }
 
   function handleGoogleLogin() {
-    window.location.href = "http://localhost:3333/auth/google";
+    const API_URL =
+      import.meta.env.VITE_API_URL?.replace("/api", "") ||
+      "http://localhost:3333";
+    window.location.href = `${API_URL}/auth/google`;
   }
 
   // ⚙️ FUNÇÃO DE RESET
