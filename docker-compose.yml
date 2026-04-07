@@ -1,0 +1,17 @@
+version: "3.9"
+services:
+  backend:
+    build:
+      context: ./backend
+    ports:
+      - "3333:3333"
+    env_file:
+      - ./backend/.env
+
+  frontend:
+    build:
+      context: ./frontend
+    ports:
+      - "4173:80"
+    environment:
+      - VITE_API_URL=http://backend:3333/api
