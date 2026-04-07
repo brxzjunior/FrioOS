@@ -104,12 +104,20 @@ export default function Login() {
               borderRadius: 14,
               background: "rgba(45,212,191,0.12)",
               border: "1px solid rgba(45,212,191,0.25)",
-              fontSize: 26,
               marginBottom: 14,
             }}
           >
-            ❄️
+            <img
+              src="/Frio.svg"
+              alt="FrioOS"
+              style={{
+                width: 28,
+                height: 28,
+                objectFit: "contain",
+              }}
+            />
           </div>
+
           <h1
             style={{
               margin: 0,
@@ -120,6 +128,7 @@ export default function Login() {
           >
             FrioOS
           </h1>
+
           <p style={{ margin: "6px 0 0", fontSize: 13 }}>
             Entre na sua conta para continuar
           </p>

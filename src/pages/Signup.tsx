@@ -44,8 +44,50 @@ export default function Signup() {
   return (
     <div className="main" style={{ display: "flex", justifyContent: "center" }}>
       <div className="card" style={{ width: 400 }}>
-        <h2>Criar conta</h2>
+        {/* LOGO (IGUAL LOGIN) */}
+        <div style={{ textAlign: "center", marginBottom: 32 }}>
+          <div
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: 56,
+              height: 56,
+              borderRadius: 14,
+              background: "rgba(45,212,191,0.12)",
+              border: "1px solid rgba(45,212,191,0.25)",
+              marginBottom: 14,
+            }}
+          >
+            <img
+              src="/Frio.svg"
+              alt="FrioOS"
+              style={{
+                width: 28,
+                height: 28,
+                objectFit: "contain",
+                filter: "drop-shadow(0 0 6px rgba(45,212,191,0.4))",
+              }}
+            />
+          </div>
 
+          <h1
+            style={{
+              margin: 0,
+              fontSize: 22,
+              color: "var(--text)",
+              letterSpacing: "0.02em",
+            }}
+          >
+            FrioOS
+          </h1>
+
+          <p style={{ margin: "6px 0 0", fontSize: 13 }}>
+            Crie sua conta para começar
+          </p>
+        </div>
+
+        {/* FORM */}
         <form onSubmit={handleSignup} style={{ display: "grid", gap: 10 }}>
           <input
             className="input"

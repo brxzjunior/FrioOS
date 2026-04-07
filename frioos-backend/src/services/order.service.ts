@@ -289,16 +289,27 @@ export async function update(
 }
 
 // ── STATS ─────────────────────────────────────────────────────
-/** Contagens por status para o dashboard */
+/** Contagens por status para o dashboard (corrigido com JOIN) */
 export async function stats(userId: string) {
   if (!userId) throw new Error("userId é obrigatório.");
 
   const rows = await all<{ status: OrderStatus; total: number }>(
-    `SELECT status, COUNT(*) as total FROM orders WHERE userId = ? GROUP BY status`,
+    `
+    SELECT orders.status, COUNT(*) as total 
+    FROM orders
+    JOIN clients ON clients.id = orders.clientId
+    WHERE orders.userId = ?
+    GROUP BY orders.status
+    `,
     [userId],
   );
 
-  const result = { abertas: 0, andamento: 0, finalizadas: 0, total: 0 };
+  const result = {
+    abertas: 0,
+    andamento: 0,
+    finalizadas: 0,
+    total: 0,
+  };
 
   for (const row of rows) {
     if (row.status === "ABERTA") result.abertas = row.total;
