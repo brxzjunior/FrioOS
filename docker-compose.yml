@@ -10,16 +10,16 @@ services:
       - sqlite_data:/data
     restart: unless-stopped
 
-  frontend:
-    build:
-      context: ./frontend
-    ports:
-      - "4173:80"
-    environment:
+frontend:
+  build:
+    context: ./frontend
+    args:
       - VITE_API_URL=http://localhost:3333
-    depends_on:
-      - backend
-    restart: unless-stopped
+  ports:
+    - "4173:80"
+  depends_on:
+    - backend
+  restart: unless-stopped
 
 volumes:
   sqlite_data:
