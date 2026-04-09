@@ -33,19 +33,20 @@ export async function getRevenueByMonth(req: Request, res: Response) {
     const data = await orderService.revenueByMonth(userId);
     return res.json(data);
   } catch (err: any) {
+    console.error("❌ ERRO getRevenueByMonth:", err);
     return res
       .status(500)
       .json({ message: err.message ?? "Erro ao buscar faturamento" });
   }
 }
 
-/** GET /orders/stats/services — tipos de serviço mais realizados */
 export async function getMostUsedServices(req: Request, res: Response) {
   try {
     const userId = getUserId(req);
     const data = await orderService.mostUsedService(userId);
     return res.json(data);
   } catch (err: any) {
+    console.error("❌ ERRO getMostUsedServices:", err);
     return res
       .status(500)
       .json({ message: err.message ?? "Erro ao buscar serviços" });
@@ -173,6 +174,7 @@ export async function getOrderStats(req: Request, res: Response) {
     const result = await orderService.stats(userId);
     return res.json(result);
   } catch (err: any) {
+    console.error("❌ ERRO getOrderStats:", err);
     if (err.message === "Usuário não autenticado.") {
       return res.status(401).json({ message: err.message });
     }
