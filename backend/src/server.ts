@@ -1,8 +1,8 @@
+import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import routes from "./routes";
 import { initDb } from "./database/schema";
-import "dotenv/config";
 import passport from "passport";
 import "./config/googleAuth";
 import { generateToken } from "./utils/generateToken";
