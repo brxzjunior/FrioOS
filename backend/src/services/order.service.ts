@@ -1,13 +1,6 @@
-// frioos-backend/src/services/order.service.ts
-// ─────────────────────────────────────────────────────────────
-// Camada de acesso ao banco para ordens de serviço.
-// Todas as funções recebem userId para garantir isolamento
-// de dados entre usuários (multi-tenant seguro).
-// ─────────────────────────────────────────────────────────────
 import { all, get, run } from "../database/db";
 import crypto from "crypto";
 
-// ── Tipos públicos ────────────────────────────────────────────
 export type OrderStatus = "ABERTA" | "ANDAMENTO" | "FINALIZADA";
 export type OrderTipo = "INSTALACAO" | "MANUTENCAO" | "LIMPEZA" | "RETIRADA";
 
@@ -20,14 +13,13 @@ export type Order = {
   obs: string | null;
   valor: number;
   status: OrderStatus;
-  pago: boolean; // ✅ campo de pagamento
+  pago: boolean;
   createdAt: string;
   scheduledFor?: string | null;
   clientNome?: string;
   clientTelefone?: string;
 };
 
-// ── Tipos internos ────────────────────────────────────────────
 type CreateOrderInput = {
   clientId: string;
   tipo: OrderTipo;
@@ -43,36 +35,29 @@ type ListParams = {
   status?: OrderStatus;
 };
 
-// ── SELECT padrão com JOIN ────────────────────────────────────
-// Centralizado para evitar repetição em list e getById.
-// O campo pago vem como INTEGER do SQLite (0/1) —
-// convertemos para boolean no retorno via map.
 const ORDER_SELECT = `
   SELECT
     orders.id,
-    orders.userId,
-    orders.clientId,
+    orders."userId",
+    orders."clientId",
     orders.tipo,
     orders.descricao,
     orders.obs,
     orders.valor,
     orders.status,
     orders.pago,
-    orders.createdAt,
-    orders.scheduledFor,
-    clients.nome      AS clientNome,
-    clients.telefone  AS clientTelefone
+    orders."createdAt",
+    orders."scheduledFor",
+    clients.nome     AS "clientNome",
+    clients.telefone AS "clientTelefone"
   FROM orders
-  JOIN clients ON clients.id = orders.clientId
+  JOIN clients ON clients.id = orders."clientId"
 `;
 
-/** Converte o campo pago de INTEGER (SQLite) para boolean */
 function toOrder(raw: any): Order {
   return { ...raw, pago: raw.pago === 1 || raw.pago === true };
 }
 
-// ── LIST ──────────────────────────────────────────────────────
-/** Lista ordens do usuário com paginação e filtro de status */
 export async function list(userId: string, params?: ListParams) {
   if (!userId) throw new Error("userId é obrigatório.");
 
@@ -81,35 +66,41 @@ export async function list(userId: string, params?: ListParams) {
   const status = params?.status;
   const offset = (page - 1) * limit;
 
-  let where = `WHERE orders.userId = ?`;
   const values: any[] = [userId];
+  let where = `WHERE orders."userId" = $1`;
 
   if (status) {
-    where += ` AND orders.status = ?`;
     values.push(status);
+    where += ` AND orders.status = $${values.length}`;
   }
 
-  const rawOrders = await all<any>(
-    `${ORDER_SELECT} ${where} ORDER BY datetime(orders.createdAt) DESC LIMIT ? OFFSET ?`,
-    [...values, limit, offset],
-  );
+  values.push(limit);
+  const limitIdx = values.length;
+  values.push(offset);
+  const offsetIdx = values.length;
 
-  const totalRow = await get<{ total: number }>(
-    `SELECT COUNT(*) as total FROM orders ${where}`,
+  const rawOrders = await all<any>(
+    `${ORDER_SELECT} ${where} ORDER BY orders."createdAt" DESC LIMIT $${limitIdx} OFFSET $${offsetIdx}`,
     values,
   );
+
+  const countValues = status ? [userId, status] : [userId];
+  const totalRow = await get<{ total: string }>(
+    `SELECT COUNT(*) as total FROM orders ${where}`,
+    countValues,
+  );
+
+  const total = Number(totalRow?.total ?? 0);
 
   return {
     data: rawOrders.map(toOrder),
     page,
     limit,
-    total: totalRow?.total ?? 0,
-    totalPages: Math.ceil((totalRow?.total ?? 0) / limit),
+    total,
+    totalPages: Math.ceil(total / limit),
   };
 }
 
-// ── GET BY ID ─────────────────────────────────────────────────
-/** Busca uma OS específica do usuário */
 export async function getById(
   userId: string,
   id: string,
@@ -118,15 +109,13 @@ export async function getById(
   if (!id) throw new Error("id é obrigatório.");
 
   const raw = await get<any>(
-    `${ORDER_SELECT} WHERE orders.id = ? AND orders.userId = ?`,
+    `${ORDER_SELECT} WHERE orders.id = $1 AND orders."userId" = $2`,
     [id, userId],
   );
 
   return raw ? toOrder(raw) : null;
 }
 
-// ── CREATE ────────────────────────────────────────────────────
-/** Cria uma nova OS. pago começa sempre como false */
 export async function create(
   userId: string,
   input: CreateOrderInput,
@@ -148,7 +137,7 @@ export async function create(
     throw new Error("valor inválido.");
 
   const client = await get<{ id: string }>(
-    `SELECT id FROM clients WHERE id = ? AND userId = ?`,
+    `SELECT id FROM clients WHERE id = $1 AND "userId" = $2`,
     [clientId, userId],
   );
   if (!client)
@@ -159,8 +148,8 @@ export async function create(
 
   await run(
     `INSERT INTO orders
-      (id, userId, clientId, tipo, descricao, obs, valor, status, pago, createdAt, scheduledFor)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      (id, "userId", "clientId", tipo, descricao, obs, valor, status, pago, "createdAt", "scheduledFor")
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
     [
       orderId,
       userId,
@@ -170,7 +159,7 @@ export async function create(
       obs,
       valorNumber,
       "ABERTA",
-      0,
+      false,
       createdAt,
       scheduledFor,
     ],
@@ -181,8 +170,6 @@ export async function create(
   return order;
 }
 
-// ── UPDATE STATUS ─────────────────────────────────────────────
-/** Atualiza apenas o status da OS (progresso do serviço) */
 export async function updateStatus(
   userId: string,
   id: string,
@@ -194,13 +181,13 @@ export async function updateStatus(
   if (!orderId) throw new Error("id é obrigatório.");
 
   const exists = await get<{ id: string }>(
-    `SELECT id FROM orders WHERE id = ? AND userId = ?`,
+    `SELECT id FROM orders WHERE id = $1 AND "userId" = $2`,
     [orderId, userId],
   );
   if (!exists)
     throw new Error("OS não encontrada ou não pertence a este usuário.");
 
-  await run(`UPDATE orders SET status = ? WHERE id = ? AND userId = ?`, [
+  await run(`UPDATE orders SET status = $1 WHERE id = $2 AND "userId" = $3`, [
     status,
     orderId,
     userId,
@@ -209,12 +196,6 @@ export async function updateStatus(
   return { id: orderId, status };
 }
 
-// ── UPDATE PAGO ───────────────────────────────────────────────
-/**
- * Marca/desmarca uma OS como paga.
- * Independente do status do serviço — uma OS pode estar
- * "Em Andamento" e já ter sido paga antecipadamente.
- */
 export async function updatePago(
   userId: string,
   id: string,
@@ -224,14 +205,13 @@ export async function updatePago(
   if (!id) throw new Error("id é obrigatório.");
 
   const exists = await get<{ id: string }>(
-    `SELECT id FROM orders WHERE id = ? AND userId = ?`,
+    `SELECT id FROM orders WHERE id = $1 AND "userId" = $2`,
     [id, userId],
   );
   if (!exists) throw new Error("OS não encontrada.");
 
-  // Converte boolean para INTEGER (SQLite não tem tipo boolean nativo)
-  await run(`UPDATE orders SET pago = ? WHERE id = ? AND userId = ?`, [
-    pago ? 1 : 0,
+  await run(`UPDATE orders SET pago = $1 WHERE id = $2 AND "userId" = $3`, [
+    pago,
     id,
     userId,
   ]);
@@ -241,8 +221,6 @@ export async function updatePago(
   return updated;
 }
 
-// ── UPDATE ────────────────────────────────────────────────────
-/** Edita campos descritivos da OS (não altera status nem pago) */
 export async function update(
   userId: string,
   id: string,
@@ -258,7 +236,7 @@ export async function update(
   if (!id) throw new Error("id é obrigatório.");
 
   const exists = await get<{ id: string }>(
-    `SELECT id FROM orders WHERE id = ? AND userId = ?`,
+    `SELECT id FROM orders WHERE id = $1 AND "userId" = $2`,
     [id, userId],
   );
   if (!exists) throw new Error("Ordem não encontrada.");
@@ -266,12 +244,12 @@ export async function update(
   await run(
     `UPDATE orders
      SET
-       descricao    = COALESCE(?, descricao),
-       obs          = COALESCE(?, obs),
-       valor        = COALESCE(?, valor),
-       tipo         = COALESCE(?, tipo),
-       scheduledFor = COALESCE(?, scheduledFor)
-     WHERE id = ? AND userId = ?`,
+       descricao      = COALESCE($1, descricao),
+       obs            = COALESCE($2, obs),
+       valor          = COALESCE($3, valor),
+       tipo           = COALESCE($4, tipo),
+       "scheduledFor" = COALESCE($5, "scheduledFor")
+     WHERE id = $6 AND "userId" = $7`,
     [
       data.descricao ?? null,
       data.obs ?? null,
@@ -288,83 +266,64 @@ export async function update(
   return updated;
 }
 
-// ── STATS ─────────────────────────────────────────────────────
-/** Contagens por status para o dashboard (corrigido com JOIN) */
 export async function stats(userId: string) {
   if (!userId) throw new Error("userId é obrigatório.");
 
-  const rows = await all<{ status: OrderStatus; total: number }>(
-    `
-    SELECT orders.status, COUNT(*) as total 
-    FROM orders
-    JOIN clients ON clients.id = orders.clientId
-    WHERE orders.userId = ?
-    GROUP BY orders.status
-    `,
+  const rows = await all<{ status: OrderStatus; total: string }>(
+    `SELECT orders.status, COUNT(*) as total
+     FROM orders
+     INNER JOIN clients ON clients.id = orders."clientId"
+     WHERE orders."userId" = $1
+     GROUP BY orders.status`,
     [userId],
   );
 
-  const result = {
-    abertas: 0,
-    andamento: 0,
-    finalizadas: 0,
-    total: 0,
-  };
+  const result = { abertas: 0, andamento: 0, finalizadas: 0, total: 0 };
 
   for (const row of rows) {
-    if (row.status === "ABERTA") result.abertas = row.total;
-    if (row.status === "ANDAMENTO") result.andamento = row.total;
-    if (row.status === "FINALIZADA") result.finalizadas = row.total;
-    result.total += row.total;
+    if (row.status === "ABERTA") result.abertas = Number(row.total);
+    if (row.status === "ANDAMENTO") result.andamento = Number(row.total);
+    if (row.status === "FINALIZADA") result.finalizadas = Number(row.total);
+    result.total += Number(row.total);
   }
 
   return result;
 }
 
-// ── REMOVE ────────────────────────────────────────────────────
-/** Remove uma OS permanentemente */
 export async function remove(userId: string, id: string) {
   if (!userId) throw new Error("userId é obrigatório.");
   if (!id) throw new Error("id é obrigatório.");
 
   const order = await get<{ id: string }>(
-    `SELECT id FROM orders WHERE id = ? AND userId = ?`,
+    `SELECT id FROM orders WHERE id = $1 AND "userId" = $2`,
     [id, userId],
   );
   if (!order) throw new Error("Ordem não encontrada.");
 
-  await run(`DELETE FROM orders WHERE id = ? AND userId = ?`, [id, userId]);
+  await run(`DELETE FROM orders WHERE id = $1 AND "userId" = $2`, [id, userId]);
   return { id };
 }
 
-// ── REVENUE BY MONTH ──────────────────────────────────────────
-/**
- * Faturamento mensal de OS FINALIZADAS.
- * Usa scheduledFor com ajuste de +3h para compensar UTC→BRT,
- * evitando que datas de março apareçam como fevereiro.
- */
 export async function revenueByMonth(userId: string) {
   return await all(
     `SELECT
-       strftime('%Y-%m', scheduledFor, '+3 hours') AS mes,
+       TO_CHAR(CAST("scheduledFor" AS timestamp), 'YYYY-MM') AS mes,
        SUM(valor) AS total
      FROM orders
-     WHERE userId = ? AND status = 'FINALIZADA' AND scheduledFor IS NOT NULL
+     WHERE "userId" = $1 AND status = 'FINALIZADA' AND "scheduledFor" IS NOT NULL
      GROUP BY mes
      ORDER BY mes DESC`,
     [userId],
   );
 }
 
-// ── MOST USED SERVICE ─────────────────────────────────────────
-/** Contagem de OS por tipo de serviço */
 export async function mostUsedService(userId: string) {
   if (!userId) throw new Error("userId é obrigatório.");
 
   return await all(
     `SELECT tipo, COUNT(*) AS total
      FROM orders
-     WHERE userId = ?
+     WHERE "userId" = $1
      GROUP BY tipo
      ORDER BY total DESC`,
     [userId],
