@@ -5,54 +5,43 @@ import { randomUUID } from "crypto";
 import { get, run } from "../database/db";
 import { sendEmail } from "../utils/sendEmail";
 import { isValidEmail, isBlockedEmail } from "../utils/validators";
-
-// reset senha
 import { generateResetToken } from "../utils/generateResetToken";
 import { saveResetToken, getUserByResetToken } from "../services/user.service";
 
 function signToken(user: { id: string; email: string }) {
   const secret = process.env.JWT_SECRET;
   if (!secret) throw new Error("JWT_SECRET não definido");
-
   return jwt.sign({ email: user.email }, secret, {
     subject: user.id,
     expiresIn: "7d",
   });
 }
 
-// ─────────────────────────────
-// SIGNUP
-// ─────────────────────────────
 export async function signup(req: Request, res: Response) {
   try {
     const { name, email, password } = req.body;
 
-    if (!name || name.trim().length < 2) {
+    if (!name || name.trim().length < 2)
       return res.status(400).json({ message: "Nome inválido" });
-    }
 
     const normalizedEmail = email?.toLowerCase().trim();
 
-    if (!normalizedEmail || !isValidEmail(normalizedEmail)) {
+    if (!normalizedEmail || !isValidEmail(normalizedEmail))
       return res.status(400).json({ message: "Email inválido" });
-    }
 
-    if (isBlockedEmail(normalizedEmail)) {
+    if (isBlockedEmail(normalizedEmail))
       return res.status(400).json({ message: "Email não permitido" });
-    }
 
-    if (!password || password.length < 6) {
+    if (!password || password.length < 6)
       return res.status(400).json({ message: "Senha mínimo 6 caracteres" });
-    }
 
     const existing = await get<{ id: string }>(
-      `SELECT id FROM users WHERE email = ?`,
+      `SELECT id FROM users WHERE email = $1`,
       [normalizedEmail],
     );
 
-    if (existing) {
+    if (existing)
       return res.status(409).json({ message: "Email já cadastrado" });
-    }
 
     const user = {
       id: randomUUID(),
@@ -64,8 +53,8 @@ export async function signup(req: Request, res: Response) {
     };
 
     await run(
-      `INSERT INTO users (id, name, email, passwordHash, avatarUrl, createdAt)
-   VALUES (?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO users (id, name, email, "passwordHash", "avatarUrl", "createdAt")
+       VALUES ($1, $2, $3, $4, $5, $6)`,
       [
         user.id,
         user.name,
@@ -80,37 +69,24 @@ export async function signup(req: Request, res: Response) {
 
     return res.status(201).json({
       token,
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-      },
+      user: { id: user.id, name: user.name, email: user.email },
     });
   } catch (err: any) {
-    return res.status(500).json({
-      message: err.message || "Erro interno",
-    });
+    return res.status(500).json({ message: err.message || "Erro interno" });
   }
 }
 
-// ─────────────────────────────
-// LOGIN
-// ─────────────────────────────
 export async function login(req: Request, res: Response) {
   try {
     const { email, password } = req.body;
 
-    if (!email || !password) {
-      return res.status(400).json({
-        message: "Email e senha obrigatórios",
-      });
-    }
+    if (!email || !password)
+      return res.status(400).json({ message: "Email e senha obrigatórios" });
 
     const normalizedEmail = email.toLowerCase().trim();
 
-    if (!isValidEmail(normalizedEmail)) {
+    if (!isValidEmail(normalizedEmail))
       return res.status(400).json({ message: "Email inválido" });
-    }
 
     const user = await get<{
       id: string;
@@ -118,19 +94,18 @@ export async function login(req: Request, res: Response) {
       email: string;
       passwordHash: string;
       avatarUrl?: string;
-    }>(`SELECT id, name, email, passwordHash FROM users WHERE email = ?`, [
-      normalizedEmail,
-    ]);
+    }>(
+      `SELECT id, name, email, "passwordHash", "avatarUrl" FROM users WHERE email = $1`,
+      [normalizedEmail],
+    );
 
-    if (!user) {
+    if (!user)
       return res.status(401).json({ message: "Credenciais inválidas" });
-    }
 
     const validPassword = await bcrypt.compare(password, user.passwordHash);
 
-    if (!validPassword) {
+    if (!validPassword)
       return res.status(401).json({ message: "Credenciais inválidas" });
-    }
 
     const token = signToken({ id: user.id, email: user.email });
 
@@ -144,25 +119,17 @@ export async function login(req: Request, res: Response) {
       },
     });
   } catch (err: any) {
-    return res.status(500).json({
-      message: err.message || "Erro interno",
-    });
+    return res.status(500).json({ message: err.message || "Erro interno" });
   }
 }
-
-// ─────────────────────────────
-// FORGOT PASSWORD
-// ─────────────────────────────
 
 export async function forgotPassword(req: Request, res: Response) {
   try {
     const { email } = req.body;
 
-    const user = await get(`SELECT * FROM users WHERE email = ?`, [email]);
+    const user = await get(`SELECT * FROM users WHERE email = $1`, [email]);
 
-    if (!user) {
-      return res.json({ message: "Se existir, enviaremos o email." });
-    }
+    if (!user) return res.json({ message: "Se existir, enviaremos o email." });
 
     const token = generateResetToken();
     const expires = new Date(Date.now() + 1000 * 60 * 15).toISOString();
@@ -195,52 +162,43 @@ export async function forgotPassword(req: Request, res: Response) {
   }
 }
 
-// ─────────────────────────────
-// RESET PASSWORD
-// ─────────────────────────────
 export async function resetPassword(req: Request, res: Response) {
   try {
     const { token, newPassword } = req.body;
 
-    if (!token || !newPassword) {
-      return res.status(400).json({
-        message: "Token e nova senha são obrigatórios",
-      });
-    }
+    if (!token || !newPassword)
+      return res
+        .status(400)
+        .json({ message: "Token e nova senha são obrigatórios" });
 
-    if (newPassword.length < 6) {
-      return res.status(400).json({
-        message: "Senha deve ter pelo menos 6 caracteres",
-      });
-    }
+    if (newPassword.length < 6)
+      return res
+        .status(400)
+        .json({ message: "Senha deve ter pelo menos 6 caracteres" });
 
     const user = await getUserByResetToken(token);
 
-    if (!user) {
-      return res.status(400).json({ message: "Token inválido" });
-    }
+    if (!user) return res.status(400).json({ message: "Token inválido" });
 
-    if (!user.resetTokenExpiresAt) {
+    if (!user.resetTokenExpiresAt)
       return res.status(400).json({ message: "Token inválido" });
-    }
 
-    if (new Date(user.resetTokenExpiresAt) < new Date()) {
+    if (new Date(user.resetTokenExpiresAt) < new Date())
       return res.status(400).json({ message: "Token expirado" });
-    }
 
     const passwordHash = await bcrypt.hash(newPassword, 10);
 
     await run(
       `UPDATE users 
-   SET passwordHash = ?, resetToken = NULL, resetTokenExpiresAt = NULL
-   WHERE id = ?`,
+       SET "passwordHash" = $1, "resetToken" = NULL, "resetTokenExpiresAt" = NULL
+       WHERE id = $2`,
       [passwordHash, user.id],
     );
 
     return res.json({ ok: true });
   } catch (err: any) {
-    return res.status(500).json({
-      message: err.message || "Erro ao resetar senha",
-    });
+    return res
+      .status(500)
+      .json({ message: err.message || "Erro ao resetar senha" });
   }
 }

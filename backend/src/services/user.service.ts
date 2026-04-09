@@ -1,7 +1,7 @@
 import { get, run } from "../database/db";
 
 export async function getUserByEmail(email: string) {
-  return get(`SELECT * FROM users WHERE email = ?`, [email]);
+  return get(`SELECT * FROM users WHERE email = $1`, [email]);
 }
 
 export async function createUser(data: {
@@ -11,8 +11,8 @@ export async function createUser(data: {
   avatarUrl?: string | null;
 }) {
   await run(
-    `INSERT INTO users (id, name, email, avatarUrl)
-     VALUES (?, ?, ?, ?)`,
+    `INSERT INTO users (id, name, email, "avatarUrl")
+     VALUES ($1, $2, $3, $4)`,
     [data.id, data.name, data.email, data.avatarUrl || null],
   );
 
@@ -26,30 +26,30 @@ export async function saveResetToken(
 ) {
   await run(
     `UPDATE users
-     SET resetToken = ?, resetTokenExpiresAt = ?
-     WHERE id = ?`,
+     SET "resetToken" = $1, "resetTokenExpiresAt" = $2
+     WHERE id = $3`,
     [token, expiresAt, userId],
   );
 }
 
 export async function getUserByResetToken(token: string) {
-  return get(`SELECT * FROM users WHERE resetToken = ?`, [token]);
+  return get(`SELECT * FROM users WHERE "resetToken" = $1`, [token]);
 }
 
 export async function clearResetToken(userId: string) {
   await run(
     `UPDATE users
-     SET resetToken = NULL, resetTokenExpiresAt = NULL
-     WHERE id = ?`,
+     SET "resetToken" = NULL, "resetTokenExpiresAt" = NULL
+     WHERE id = $1`,
     [userId],
   );
 }
 
 export async function getUserById(id: string) {
   return get(
-    `SELECT id, name, email, avatarUrl 
+    `SELECT id, name, email, "avatarUrl" 
      FROM users 
-     WHERE id = ?`,
+     WHERE id = $1`,
     [id],
   );
 }
@@ -60,8 +60,8 @@ export async function updateUserProfile(
 ) {
   await run(
     `UPDATE users 
-     SET name = ?, avatarUrl = ?
-     WHERE id = ?`,
+     SET name = $1, "avatarUrl" = $2
+     WHERE id = $3`,
     [data.name, data.avatarUrl, userId],
   );
 
