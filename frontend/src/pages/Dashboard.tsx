@@ -813,11 +813,14 @@ function Widget({
         background: "var(--surface)",
         border: `1px solid ${isDraggingOver ? "var(--accent)" : "var(--border)"}`,
         borderRadius: 14,
-        padding: "18px 20px",
+        padding: "14px",
         marginBottom: 0,
         transition: "border-color 0.2s, box-shadow 0.2s, opacity 0.2s",
         boxShadow: isDraggingOver ? "0 0 0 2px var(--accent)33" : "none",
         cursor: "grab",
+        overflow: "hidden",
+        boxSizing: "border-box" as const,
+        width: "100%",
       }}
     >
       <div
@@ -1006,8 +1009,8 @@ export default function Dashboard() {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(2, 1fr)",
-              gap: 10,
+              gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+              gap: 8,
             }}
           >
             <StatCard
@@ -1280,6 +1283,8 @@ export default function Dashboard() {
 
       <style>{`
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        html, body { scroll-behavior: smooth; overflow-x: hidden; -webkit-overflow-scrolling: touch; }
+        * { box-sizing: border-box; }
       `}</style>
     </div>
   );
