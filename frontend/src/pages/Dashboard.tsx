@@ -95,10 +95,10 @@ function StatCard({
         border: "1px solid var(--border)",
         borderLeft: `3px solid ${color}`,
         borderRadius: 12,
-        padding: "16px 18px",
+        padding: "12px 14px",
         display: "flex",
         alignItems: "center",
-        gap: 14,
+        gap: 10,
         transition: "transform 0.15s, box-shadow 0.15s",
         cursor: "default",
       }}
@@ -115,14 +115,14 @@ function StatCard({
     >
       <div
         style={{
-          width: 44,
-          height: 44,
-          borderRadius: 10,
+          width: 36,
+          height: 36,
+          borderRadius: 8,
           background: `${color}18`,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          fontSize: 20,
+          fontSize: 16,
           flexShrink: 0,
         }}
       >
@@ -144,10 +144,13 @@ function StatCard({
         <h2
           style={{
             margin: "3px 0 0",
-            fontSize: 26,
+            fontSize: 20,
             color,
             lineHeight: 1,
             fontWeight: 700,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
           }}
         >
           {value}
@@ -1003,7 +1006,7 @@ export default function Dashboard() {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+              gridTemplateColumns: "repeat(2, 1fr)",
               gap: 10,
             }}
           >
