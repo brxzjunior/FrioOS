@@ -16,10 +16,12 @@ export type Order = {
   descricao: string;
   valor: number;
   status: OrderStatus;
-  pago: boolean; // ✅ campo de pagamento
+  pago: boolean;
   createdAt: string;
   scheduledFor?: string | null;
   obs?: string | null;
+  clientNome?: string; // ← adicionado
+  clientTelefone?: string; // ← adicionado
 };
 
 // ── Listar ────────────────────────────────────────────────────
