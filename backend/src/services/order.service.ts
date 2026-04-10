@@ -125,7 +125,7 @@ export async function create(
   const clientId = input?.clientId?.trim() ?? "";
   const tipo = input?.tipo;
   const descricao = input?.descricao?.trim() ?? "";
-  const obs = input?.obs?.trim() ?? "";
+  const obs = input?.obs?.trim() || null; // ← corrigido: string vazia vira null
   const valorNumber = Number(input?.valor);
   const scheduledFor = input?.scheduledFor ?? null;
 
@@ -159,7 +159,7 @@ export async function create(
       obs,
       valorNumber,
       "ABERTA",
-      false,
+      0, // ← corrigido: false → 0
       createdAt,
       scheduledFor,
     ],
@@ -211,7 +211,7 @@ export async function updatePago(
   if (!exists) throw new Error("OS não encontrada.");
 
   await run(`UPDATE orders SET pago = $1 WHERE id = $2 AND "userId" = $3`, [
-    pago,
+    pago ? 1 : 0, // ← corrigido: boolean → integer
     id,
     userId,
   ]);
