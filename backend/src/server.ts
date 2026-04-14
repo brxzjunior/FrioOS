@@ -29,6 +29,11 @@ app.use("/uploads", express.static("uploads"));
 // 🔓 ROTAS PÚBLICAS (FORA DO /api)
 // =============================
 
+// ✅ HEALTH CHECK (IMPORTANTE)
+app.get("/health", (req, res) => {
+  res.status(200).send("OK");
+});
+
 // teste
 app.get("/auth/test", (req, res) => {
   console.log("✅ /auth/test funcionando");
