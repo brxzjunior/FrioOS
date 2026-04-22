@@ -30,7 +30,7 @@ app.use("/uploads", express.static("uploads"));
 // 🔓 ROTAS PÚBLICAS (FORA DO /api)
 // =============================
 
-// ✅ HEALTH CHECK (IMPORTANTE)
+// ✅ HEALTH CHECK + NO IDLE (IMPORTANTE)
 app.get("/health", async (req, res) => {
   try {
     // 🔎 verifica se existe registro
