@@ -7,6 +7,7 @@ import passport from "passport";
 import "./config/googleAuth";
 import { generateToken } from "./utils/generateToken";
 import uploadRoutes from "./routes/upload.routes";
+import { supabase } from "./config/supabase";
 
 const app = express();
 const PORT = process.env.PORT || 3333;
@@ -30,8 +31,37 @@ app.use("/uploads", express.static("uploads"));
 // =============================
 
 // ✅ HEALTH CHECK (IMPORTANTE)
-app.get("/health", (req, res) => {
-  res.status(200).send("OK");
+app.get("/health", async (req, res) => {
+  try {
+    // 🔎 verifica se existe registro
+    const { data, error } = await supabase
+      .from("clients")
+      .select("id")
+      .limit(1);
+
+    if (error) throw error;
+
+    // 🧠 se não tiver nenhum, cria automaticamente
+    if (!data || data.length === 0) {
+      await supabase.from("clients").insert([
+        {
+          userId: "keep-alive",
+          nome: "Keep Alive",
+          telefone: "00000000000",
+        },
+      ]);
+    }
+
+    res.status(200).json({
+      status: "ok",
+      keepAlive: true,
+    });
+  } catch (err: any) {
+    res.status(500).json({
+      status: "error",
+      error: err.message,
+    });
+  }
 });
 
 // teste
