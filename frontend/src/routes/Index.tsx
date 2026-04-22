@@ -11,7 +11,6 @@ import Orders from "../pages/Orders";
 import NewOrder from "../pages/NewOrder";
 import Reports from "../pages/Reports";
 import LoginSuccess from "../pages/LoginSuccess";
-import GoogleCallback from "../pages/GoogleCallback";
 import ResetPassword from "../pages/ResetPassword";
 import Profile from "../pages/Profile";
 
@@ -22,12 +21,11 @@ export default function AppRoutes() {
         {/* públicas */}
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
-
-        {/* Google callback NÃO pode ser protegido */}
-        <Route path="/auth/google/callback" element={<GoogleCallback />} />
-
-        <Route path="/login/success" element={<LoginSuccess />} />
         <Route path="/reset-password" element={<ResetPassword />} />
+
+        {/* callbacks do Google OAuth — ambas as rotas convergem para o mesmo componente */}
+        <Route path="/login/success" element={<LoginSuccess />} />
+        <Route path="/auth/google/callback" element={<LoginSuccess />} />
 
         {/* privadas */}
         <Route element={<ProtectedRoute />}>

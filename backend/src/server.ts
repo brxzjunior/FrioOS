@@ -5,84 +5,40 @@ import routes from "./routes";
 import { initDb } from "./database/schema";
 import passport from "passport";
 import "./config/googleAuth";
-import { generateToken } from "./utils/generateToken";
 import uploadRoutes from "./routes/upload.routes";
-import { supabase } from "./config/supabase";
 
 const app = express();
 const PORT = process.env.PORT || 3333;
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
-const BACKEND_URL = process.env.BACKEND_URL || `http://localhost:${PORT}`;
 
-// 🔥 INIT DB
+// INIT DB
 initDb();
 
-// 🔥 MIDDLEWARES
+// MIDDLEWARES
 app.use(cors());
 app.use(express.json());
 app.use(passport.initialize());
 
-// Upload fotos
+// Upload de arquivos
 app.use("/upload", uploadRoutes);
 app.use("/uploads", express.static("uploads"));
 
-// =============================
-// 🔓 ROTAS PÚBLICAS (FORA DO /api)
-// =============================
+// ==============================
+// ROTAS PÚBLICAS (fora do /api)
+// ==============================
 
-// ✅ HEALTH CHECK + NO IDLE (IMPORTANTE)
-app.get("/health", async (req, res) => {
-  try {
-    // 🔎 verifica se existe registro
-    const { data, error } = await supabase
-      .from("clients")
-      .select("id")
-      .limit(1);
-
-    if (error) throw error;
-
-    // 🧠 se não tiver nenhum, cria automaticamente
-    if (!data || data.length === 0) {
-      await supabase.from("clients").insert([
-        {
-          userId: "keep-alive",
-          nome: "Keep Alive",
-          telefone: "00000000000",
-        },
-      ]);
-    }
-
-    res.status(200).json({
-      status: "ok",
-      keepAlive: true,
-    });
-  } catch (err: any) {
-    res.status(500).json({
-      status: "error",
-      error: err.message,
-    });
-  }
+// Health check simples — sem inserção de dados
+app.get("/health", (_req, res) => {
+  res.status(200).json({ status: "ok" });
 });
 
-// teste
-app.get("/auth/test", (req, res) => {
-  console.log("✅ /auth/test funcionando");
-  res.send("AUTH OK");
-});
-
-// GOOGLE LOGIN
+// Google OAuth
 app.get(
   "/auth/google",
-  (req, res, next) => {
-    console.log("🔥 /auth/google chamada");
-    next();
-  },
-  passport.authenticate("google", {
-    scope: ["profile", "email"],
-  }),
+  passport.authenticate("google", { scope: ["profile", "email"] }),
 );
 
-// CALLBACK GOOGLE
+// Callback do Google
 app.get(
   "/auth/google/callback",
   passport.authenticate("google", {
@@ -90,38 +46,31 @@ app.get(
     failureRedirect: `${FRONTEND_URL}/login`,
   }),
   (req, res) => {
-    console.log("🔥 CALLBACK GOOGLE");
-
-    const user = req.user;
+    const user = req.user as any;
 
     if (!user) {
-      console.log("❌ Usuário não encontrado no callback");
       return res.redirect(`${FRONTEND_URL}/login`);
     }
 
-    const token = generateToken(user);
+    const jwt = require("jsonwebtoken");
+    const secret = process.env.JWT_SECRET!;
+    const token = jwt.sign({ email: user.email }, secret, {
+      subject: user.id,
+      expiresIn: "7d",
+    });
 
-    console.log("✅ TOKEN GERADO");
-
-    res.redirect(`${FRONTEND_URL}/login/success?token=${token}`);
+    return res.redirect(`${FRONTEND_URL}/login/success?token=${token}`);
   },
 );
 
-// =============================
-// 🔐 API (TUDO COM /api)
-// =============================
+// ==============================
+// API (tudo com /api)
+// ==============================
 app.use("/api", routes);
 
-// =============================
-// ROOT
-// =============================
-app.get("/", (req, res) => {
-  res.send("API FrioOS online ✅");
-});
-
-// =============================
+// ==============================
 // START
-// =============================
+// ==============================
 app.listen(PORT, () => {
   console.log(`✅ API rodando em http://localhost:${PORT}`);
 });

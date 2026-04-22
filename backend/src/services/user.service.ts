@@ -36,19 +36,10 @@ export async function getUserByResetToken(token: string) {
   return get(`SELECT * FROM users WHERE "resetToken" = $1`, [token]);
 }
 
-export async function clearResetToken(userId: string) {
-  await run(
-    `UPDATE users
-     SET "resetToken" = NULL, "resetTokenExpiresAt" = NULL
-     WHERE id = $1`,
-    [userId],
-  );
-}
-
 export async function getUserById(id: string) {
   return get(
-    `SELECT id, name, email, "avatarUrl" 
-     FROM users 
+    `SELECT id, name, email, "avatarUrl"
+     FROM users
      WHERE id = $1`,
     [id],
   );
@@ -59,7 +50,7 @@ export async function updateUserProfile(
   data: { name?: string; avatarUrl?: string },
 ) {
   await run(
-    `UPDATE users 
+    `UPDATE users
      SET name = $1, "avatarUrl" = $2
      WHERE id = $3`,
     [data.name, data.avatarUrl, userId],
