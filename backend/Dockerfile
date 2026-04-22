@@ -2,7 +2,7 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-COPY package*.json ./
+COPY package.json package-lock.json ./
 RUN npm install
 
 COPY tsconfig.json ./
@@ -13,4 +13,4 @@ RUN mkdir -p /data
 
 EXPOSE 3333
 
-CMD ["node", "dist/server.js"]
+CMD ["node", "dist/server.js", "start"]
